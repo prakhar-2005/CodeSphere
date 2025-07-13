@@ -9,8 +9,7 @@ import Footer from './components/Footer'
 function App() {
   const [theme, setTheme] = useState('dark');
 
-  // Effect to load theme from localStorage on initial mount
-  // and to check system preference if no theme is saved.
+  // check system preference if no theme is saved.
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -21,8 +20,6 @@ function App() {
     }
   }, []); // Empty dependency array means this runs only once on mount
 
-  // Effect to apply/remove the 'dark' class on the <html> element
-  // whenever the 'theme' state changes. Also saves preference to localStorage.
   useEffect(() => {
     if(theme == 'dark') {
       document.documentElement.classList.add('dark');

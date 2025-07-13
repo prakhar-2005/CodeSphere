@@ -1,7 +1,7 @@
 const Problems = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-8">
-      <header className="text-center mt-24 mb-16 px-4"> {/* Adjusted top margin (mt-24), bottom margin (mb-16) */}
+      <header className="text-center mt-24 mb-16 px-4">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 animate-fade-in-up">
           Explore <span className="text-blue-400 drop-shadow-lg">Problems</span>
         </h1>

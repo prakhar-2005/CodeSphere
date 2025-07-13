@@ -1,5 +1,3 @@
-import React from 'react';
-
 const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen p-8 pt-24
@@ -36,36 +34,36 @@ const HomePage = () => {
       <section className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-12 mb-24 mx-auto animate-fade-in-up delay-300"> 
         <div className="p-10 rounded-xl shadow-xl transform hover:scale-105 transition duration-300 ease-in-out animate-fade-in hover:border-blue-500 hover:shadow-slate-700
                     bg-blue-100 bg-opacity-80 border border-blue-500 {/* Light mode card defaults */}
-                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500"> {/* Original UI (dark mode) as overrides */}
-          <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400"> {/* Light blue 600, Original blue 400 for dark */}
+                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500"> 
+          <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400"> 
             <i className="fas fa-gavel"></i> 
           </div>
-          <h3 className="text-2xl font-semibold text-center mb-4 text-gray-800 dark:text-white">Precision Judging</h3> {/* Light gray 800, Original white for dark */}
-          <p className="text-center leading-relaxed text-gray-700 dark:text-gray-300"> {/* Light gray 700, Original gray 300 for dark */}
+          <h3 className="text-2xl font-semibold text-center mb-4 text-gray-800 dark:text-white">Precision Judging</h3> 
+          <p className="text-center leading-relaxed text-gray-700 dark:text-gray-300"> 
             Test your code against robust test cases with our lightning-fast online judge. Get instant feedback and detailed reports.
           </p>
         </div>
 
         <div className="p-10 rounded-xl shadow-xl transform hover:scale-105 transition duration-300 ease-in-out animate-fade-in hover:border-blue-500 hover:shadow-slate-700
                     bg-blue-100 bg-opacity-80 border border-blue-500 {/* Light mode card defaults */}
-                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500"> {/* Original UI (dark mode) as overrides */}
-          <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400"> {/* Light blue 600, Original blue 400 for dark */}
+                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500"> 
+          <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400">
             <i className="fas fa-code"></i> 
           </div>
-          <h3 className="text-2xl font-semibold text-center mb-4 text-gray-800 dark:text-white">Seamless Compilation</h3> {/* Light gray 800, Original white for dark */}
-          <p className="text-center leading-relaxed text-gray-700 dark:text-gray-300"> {/* Light gray 700, Original gray 300 for dark */}
+          <h3 className="text-2xl font-semibold text-center mb-4 text-gray-800 dark:text-white">Seamless Compilation</h3> 
+          <p className="text-center leading-relaxed text-gray-700 dark:text-gray-300"> 
             Write and run code directly in your browser with support for multiple programming languages.
           </p>
         </div>
 
         <div className="p-10 rounded-xl shadow-xl transform hover:scale-105 transition duration-300 ease-in-out animate-fade-in hover:border-blue-500 hover:shadow-slate-700
                     bg-blue-100 bg-opacity-80 border border-blue-500 {/* Light mode card defaults */}
-                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500"> {/* Original UI (dark mode) as overrides */}
-          <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400"> {/* Light blue 600, Original blue 400 for dark */}
+                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500">
+          <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400"> 
             <i className="fas fa-trophy"></i> 
           </div>
-          <h3 className="text-2xl font-semibold text-center mb-4 text-gray-800 dark:text-white">Compete & Grow</h3> {/* Light gray 800, Original white for dark */}
-          <p className="text-center leading-relaxed text-gray-700 dark:text-gray-300"> {/* Light gray 700, Original gray 300 for dark */}
+          <h3 className="text-2xl font-semibold text-center mb-4 text-gray-800 dark:text-white">Compete & Grow</h3> 
+          <p className="text-center leading-relaxed text-gray-700 dark:text-gray-300"> 
             Join thrilling contests, climb the leaderboards, and access unique learning paths with personalized feedback.
           </p>
         </div>
