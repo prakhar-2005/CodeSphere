@@ -1,0 +1,53 @@
+import { useState, useEffect } from 'react'
+import './App.css'
+import HomePage from './components/HomePage'
+import Problems from './components/Problems'
+import Navbar from './components/Navbar'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Footer from './components/Footer'
+
+function App() {
+  const [theme, setTheme] = useState('dark');
+
+  // Effect to load theme from localStorage on initial mount
+  // and to check system preference if no theme is saved.
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // If user has a system preference for dark mode, use that.
+      setTheme('dark');
+    }
+  }, []); // Empty dependency array means this runs only once on mount
+
+  // Effect to apply/remove the 'dark' class on the <html> element
+  // whenever the 'theme' state changes. Also saves preference to localStorage.
+  useEffect(() => {
+    if(theme == 'dark') {
+      document.documentElement.classList.add('dark');
+    }else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  return (
+    // <>
+    <Router>
+      <Navbar theme={theme} toggleTheme={toggleTheme}/> 
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/problems" element={<Problems />} />
+      </Routes>
+      <Footer />
+    </Router>
+    // </>
+  )
+}
+
+export default App
