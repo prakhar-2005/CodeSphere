@@ -33,8 +33,9 @@ const HomePage = () => {
 
       <section className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-12 mb-24 mx-auto animate-fade-in-up delay-300"> 
         <div className="p-10 rounded-xl shadow-xl transform hover:scale-105 transition duration-300 ease-in-out animate-fade-in hover:border-blue-500 hover:shadow-slate-700
-                    bg-blue-100 bg-opacity-80 border border-blue-500 {/* Light mode card defaults */}
-                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500"> 
+                    bg-blue-100 bg-opacity-80 border border-blue-500 hover:shadow-bottom-blue-glow
+                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500
+                    dark:hover:shadow-bottom-blue-glow"> 
           <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400"> 
             <i className="fas fa-gavel"></i> 
           </div>
@@ -45,8 +46,9 @@ const HomePage = () => {
         </div>
 
         <div className="p-10 rounded-xl shadow-xl transform hover:scale-105 transition duration-300 ease-in-out animate-fade-in hover:border-blue-500 hover:shadow-slate-700
-                    bg-blue-100 bg-opacity-80 border border-blue-500 {/* Light mode card defaults */}
-                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500"> 
+                    bg-blue-100 bg-opacity-80 border border-blue-500 hover:shadow-bottom-blue-glow
+                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500
+                    dark:hover:shadow-bottom-blue-glow"> 
           <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400">
             <i className="fas fa-code"></i> 
           </div>
@@ -57,8 +59,9 @@ const HomePage = () => {
         </div>
 
         <div className="p-10 rounded-xl shadow-xl transform hover:scale-105 transition duration-300 ease-in-out animate-fade-in hover:border-blue-500 hover:shadow-slate-700
-                    bg-blue-100 bg-opacity-80 border border-blue-500 {/* Light mode card defaults */}
-                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500">
+                    bg-blue-100 bg-opacity-80 border border-blue-500 hover:shadow-bottom-blue-glow
+                    dark:bg-gray-800 dark:bg-opacity-70 dark:border-gray-700 dark:hover:border-blue-500
+                    dark:hover:shadow-bottom-blue-glow">
           <div className="text-5xl mb-6 text-center text-blue-600 dark:text-blue-400"> 
             <i className="fas fa-trophy"></i> 
           </div>
