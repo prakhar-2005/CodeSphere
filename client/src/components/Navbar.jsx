@@ -1,9 +1,44 @@
+import { useEffect, useRef, useState } from 'react';
 import {Link} from 'react-router-dom';
 
 const Navbar = ({theme, toggleTheme}) => {
+    const [showNavbar, setShowNavbar] = useState(true);
+    const lastScrollY = useRef(0); // to store last scroll position 
+    const ticking = useRef(false); // to prevent multiple calls to requestAnimationFrame
+
+    const handleScroll = () => {
+        if (!ticking.current) {
+            window.requestAnimationFrame(() => {
+                const currentScrollY = window.scrollY;
+                if (currentScrollY > lastScrollY.current && currentScrollY > 150) {
+                    setShowNavbar(false);
+                } 
+                else if (currentScrollY < lastScrollY.current || currentScrollY < 100) {
+                    setShowNavbar(true);
+                }
+
+                lastScrollY.current = currentScrollY; 
+                ticking.current = false; 
+            });
+            ticking.current = true; 
+        }
+    };
+
+    useEffect(() => {
+        window.addEventListener('scroll', handleScroll);
+
+        // Cleanup the event listener when the component unmounts
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []); 
+
+
     return (
-        <nav className="fixed top-0 left-0 right-0 pt-4 pb-4 px-8 flex justify-between items-center z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md
-        dark:bg-gray-800 dark:bg-opacity-40 shadow-bottom-blue-glow"> 
+        <nav className={`fixed top-0 left-0 right-0 pt-4 pb-4 px-8 flex justify-between items-center z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md
+        dark:bg-gray-800 dark:bg-opacity-40 shadow-bottom-blue-glow
+        transition-transform duration-500 ease-in-out 
+        ${showNavbar ? 'translate-y-0' : '-translate-y-full'}`}> 
             <Link to="/" className="flex items-center cursor-pointer"> 
                 <img 
                     src="/images/CodeSphere_icon.PNG"
