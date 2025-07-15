@@ -58,8 +58,8 @@ const Navbar = ({theme, toggleTheme}) => {
                         <i className="fas fa-moon"></i> 
                     )}
                 </button>
-                <a href="/problems" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Problems</a>
-                <a href="/login" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Login</a>
+                <Link to="/problems" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Problems</Link>
+                <Link to="/login" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Login</Link>
             </div>
         </nav>
     )

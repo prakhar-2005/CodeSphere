@@ -14,6 +14,10 @@ const ProblemsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Pagination 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [problemsPerPage] = useState(10); 
+
   useEffect(() => {
     const fetchProblems = async () => {
       try {
@@ -32,6 +36,24 @@ const ProblemsPage = () => {
 
     fetchProblems();
   }, []); // Empty dependency array means this runs once on mount
+
+  const indexOfLastProblem = currentPage * problemsPerPage;
+  const indexOfFirstProblem = indexOfLastProblem - problemsPerPage;
+  const currentProblems = problems.slice(indexOfFirstProblem, indexOfLastProblem);
+  const totalPages = Math.ceil(problems.length / problemsPerPage);
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToLastPage = () => setCurrentPage(totalPages);
 
   if (loading) {
     return (
@@ -89,7 +111,7 @@ const ProblemsPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {problems.map((problem) => (
+                {currentProblems.map((problem) => (
                   <tr key={problem._id} className="hover:bg-gray-100 dark:hover:bg-slate-900 transition duration-150 ease-in-out">
                     <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
                       <a href={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
@@ -129,6 +151,50 @@ const ProblemsPage = () => {
           </div>
         ) : (
           <p className="text-xl text-gray-400 col-span-full text-center">No problems found.</p>
+        )}
+
+        {problems.length > problemsPerPage && ( 
+          <nav className="flex justify-center items-center space-x-2 mt-8">
+            <button
+              onClick={goToFirstPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            >
+              &lt;&lt;
+            </button>
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            >
+              &lt;
+            </button>
+
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => paginate(index + 1)}
+                className={`px-4 py-2 rounded-lg ${currentPage === index + 1 ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'} transition duration-200`}
+              >
+                {index + 1}
+              </button>
+            ))}
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            >
+              &gt;
+            </button>
+            <button
+              onClick={goToLastPage}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            >
+              &gt;&gt;
+            </button>
+          </nav>
         )}
       </section>
     </div>

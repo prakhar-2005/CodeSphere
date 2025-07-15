@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen p-8 pt-24
@@ -16,18 +18,18 @@ const HomePage = () => {
         </p>
         
         <div className="flex flex-col sm:flex-row items-center space-y-6 sm:space-y-0 sm:space-x-8 animate-fade-in-up delay-200"> 
-          <a
-            href="/problems"
+          <Link
+            to="/problems"
             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full text-lg shadow-lg transform hover:scale-105 transition duration-300 ease-in-out" 
           >
             Explore Problems
-          </a>
-          <a
-            href="/signup"
+          </Link>
+          <Link
+            to="/signup"
             className="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-lg transform hover:scale-105 transition duration-300 ease-in-out" 
           >
             Sign Up Now
-          </a>
+          </Link>
         </div>
       </header>
 
