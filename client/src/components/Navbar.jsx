@@ -1,15 +1,17 @@
+import {Link} from 'react-router-dom';
+
 const Navbar = ({theme, toggleTheme}) => {
     return (
         <nav className="fixed top-0 left-0 right-0 pt-4 pb-4 px-8 flex justify-between items-center z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md
         dark:bg-gray-800 dark:bg-opacity-40 shadow-bottom-blue-glow"> 
-            <div className="flex items-center"> 
+            <Link to="/" className="flex items-center cursor-pointer"> 
                 <img 
                     src="/images/CodeSphere_icon.PNG"
                     alt="CodeSphere Icon" 
                     className="h-10 w-10 mr-5" 
                 />
                 <div className="text-2xl font-extrabold text-blue-400">CodeSphere</div>
-            </div>
+            </Link>
             <div className="flex items-center space-x-6">
                 <button 
                 onClick={toggleTheme}
