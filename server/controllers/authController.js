@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const generateToken = require("../utils/generateToken");
 
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
@@ -68,10 +69,12 @@ const loginUser = async (req, res) => {
 };
 
 const logoutUser = (req, res) => {
-  res.cookie('jwt', '', { // Clear JWT cookie
-    httpOnly: true,
+  res.cookie('jwt', 'none', { 
     expires: new Date(0), 
-  });
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict', 
+});
   res.status(200).json({ message: 'Logged out successfully' });
 };
 

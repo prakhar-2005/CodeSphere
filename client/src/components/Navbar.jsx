@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import {Link} from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({theme, toggleTheme}) => {
+    const { isAuthenticated, currentUser, logout, loadingAuth } = useAuth(); 
+
     const [showNavbar, setShowNavbar] = useState(true);
-    const lastScrollY = useRef(0); // to store last scroll position 
+    const lastScrollY = useRef(0); 
     const ticking = useRef(false); // to prevent multiple calls to requestAnimationFrame
 
     const handleScroll = () => {
@@ -33,6 +36,32 @@ const Navbar = ({theme, toggleTheme}) => {
         };
     }, []); 
 
+    const handleLogout = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', 
+            });
+
+            if (response.ok) {
+                logout(); 
+            } else {
+                const errorData = await response.json();
+                console.error('Logout failed:', errorData.message);
+                alert('Logout failed: ' + (errorData.message || 'Server error')); 
+            }
+        } catch (error) {
+            console.error('Network error during logout:', error);
+            alert('Network error during logout.'); 
+        }
+    };
+
+    if (loadingAuth) {
+        return null; 
+    }
 
     return (
         <nav className={`fixed top-0 left-0 right-0 pt-4 pb-4 px-8 flex justify-between items-center z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md
@@ -59,7 +88,24 @@ const Navbar = ({theme, toggleTheme}) => {
                     )}
                 </button>
                 <Link to="/problems" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Problems</Link>
-                <Link to="/login" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Login</Link>
+                
+                {isAuthenticated ? (
+                    <Link to="/login" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Login</Link>
+                ) : (
+                    <>
+                        {currentUser && ( 
+                            <span className="px-5 py-2.5 text-gray-300 font-medium">
+                                Hello, {currentUser.username}!
+                            </span>
+                        )}
+                        <button
+                            onClick={handleLogout}
+                            className="px-5 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition duration-300"
+                        >
+                            Logout
+                        </button>
+                    </>
+                )}
             </div>
         </nav>
     )

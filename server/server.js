@@ -6,8 +6,8 @@ const problemRoutes = require('./routes/problemRoutes');
 const authRoutes = require('./routes/authRoutes')
 const cookieParser = require('cookie-parser');
 
-connectDB();
 dotenv.config(); // Load environment variables from .env
+connectDB();
 const app = express();
 
 app.use(express.json());
