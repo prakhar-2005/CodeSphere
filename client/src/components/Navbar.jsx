@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 const Navbar = ({theme, toggleTheme}) => {
     const { isAuthenticated, currentUser, logout, loadingAuth } = useAuth(); 
 
+    // console.log("Navbar: Rendered. isAuthenticated:", isAuthenticated, "loadingAuth:", loadingAuth, "currentUser:", currentUser ? currentUser.username : 'null');
+
     const [showNavbar, setShowNavbar] = useState(true);
     const lastScrollY = useRef(0); 
     const ticking = useRef(false); // to prevent multiple calls to requestAnimationFrame
@@ -37,29 +39,11 @@ const Navbar = ({theme, toggleTheme}) => {
     }, []); 
 
     const handleLogout = async () => {
-        try {
-            const response = await fetch('http://localhost:5000/api/auth/logout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include', 
-            });
-
-            if (response.ok) {
-                logout(); 
-            } else {
-                const errorData = await response.json();
-                console.error('Logout failed:', errorData.message);
-                alert('Logout failed: ' + (errorData.message || 'Server error')); 
-            }
-        } catch (error) {
-            console.error('Network error during logout:', error);
-            alert('Network error during logout.'); 
-        }
+        logout(); 
     };
 
     if (loadingAuth) {
+        // console.log("Navbar: Rendering NULL because loadingAuth is TRUE.");
         return null; 
     }
 
@@ -89,7 +73,7 @@ const Navbar = ({theme, toggleTheme}) => {
                 </button>
                 <Link to="/problems" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Problems</Link>
                 
-                {isAuthenticated ? (
+                {!isAuthenticated ? (
                     <Link to="/login" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Login</Link>
                 ) : (
                     <>

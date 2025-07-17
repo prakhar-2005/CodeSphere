@@ -12,10 +12,10 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser()); // Middleware to parse cookies
+app.use(cookieParser()); 
 app.use(cors({
-    origin: 'http://localhost:5173', 
-    credentials: true,
+    origin: `${process.env.VITE_FRONTEND_BASE_URL}`,
+    credentials: true, // Allow cookies to be sent
 }));
 
 app.use('/api/problems', problemRoutes);
@@ -25,5 +25,5 @@ app.get('/', (req, res) => {
     res.send('CodeSphere Backend API is running!');
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

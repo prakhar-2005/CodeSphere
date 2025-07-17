@@ -4,63 +4,96 @@ const AuthContext = createContext(null);
 
 //Custom hook to use in other components
 export const useAuth = () => {
-  return useContext(AuthContext);
+    return useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loadingAuth, setLoadingAuth] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loadingAuth, setLoadingAuth] = useState(true);
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL; 
 
-  const login = (userData) => {
-    setCurrentUser(userData);
-    setIsAuthenticated(true);
-  };
+    // console.log("AuthContext: Provider Rendered. isAuthenticated:", isAuthenticated, "loadingAuth:", loadingAuth, "currentUser:", currentUser ? currentUser.username : 'null');
 
-  const logout = () => {
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-  };
-
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/auth/me', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include', // to send HTTP-only cookies
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          login(data); 
-        } else {
-          logout();
-        }
-      } catch (error) {
-        console.error('Error checking authentication status:', error);
-        logout(); 
-      } finally {
-        setLoadingAuth(false); 
-      }
+    const login = (userData) => {
+        setCurrentUser(userData);
+        setIsAuthenticated(true);
+        // console.log("AuthContext: login() executed. isAuthenticated now TRUE for user:", userData.username);
     };
 
-    checkAuthStatus();
-  }, []); 
+    const logout = async () => {
+        setLoadingAuth(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            });
 
-  const authContextValue = {
-    currentUser,
-    isAuthenticated,
-    loadingAuth,
-    login,
-    logout,
-  };
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('AuthContext: Backend logout failed (response not ok):', errorData.message);
+            }else{
+                console.log('AuthContext: Backend logout API call successful (response.ok).');
+            }
 
-  return (
-    <AuthContext.Provider value={authContextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+        } catch (error) {
+            console.error('Network error during logout:', error);
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+        } finally {
+            setLoadingAuth(false);
+        }
+    };
+
+    useEffect(() => {
+        const checkAuthStatus = async () => {
+            setLoadingAuth(true); 
+            // console.log("AuthContext: checkAuthStatus useEffect triggered.");
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // to send HTTP-only cookies
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    login(data);
+                    console.log("AuthContext: /api/auth/me response OK. Calling login().");
+                } else {
+                    console.log("AuthContext: /api/auth/me response NOT OK. Calling logout() to clear frontend state. Status:", response.status);
+                    logout();
+                }
+            } catch (error) {
+                console.log("AuthContext: checkAuthStatus caught error. Calling logout() to clear frontend state.");
+                logout();
+            } finally {
+                setLoadingAuth(false);
+                console.log("AuthContext: checkAuthStatus finally block. setLoadingAuth FALSE.");
+            }
+        };
+
+        checkAuthStatus();
+    }, []);
+
+    const authContextValue = {
+        currentUser,
+        isAuthenticated,
+        loadingAuth,
+        login,
+        logout,
+    };
+
+    return (
+        <AuthContext.Provider value={authContextValue}>
+            {children}
+        </AuthContext.Provider>
+    );
 };

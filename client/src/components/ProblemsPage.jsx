@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const getDifficultyColor = (difficulty) => {
   switch (difficulty) {
@@ -18,10 +18,12 @@ const ProblemsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [problemsPerPage] = useState(10); 
 
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL
+
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/problems'); 
+        const response = await fetch(`${API_BASE_URL}/problems`); 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -35,7 +37,7 @@ const ProblemsPage = () => {
     };
 
     fetchProblems();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []); 
 
   const indexOfLastProblem = currentPage * problemsPerPage;
   const indexOfFirstProblem = indexOfLastProblem - problemsPerPage;

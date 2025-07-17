@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
+import { useAuth } from '../context/AuthContext';
 
-const LoginPage = ({ toggleTheme }) => { // Assuming toggleTheme might be passed down
+const LoginPage = ({ toggleTheme }) => { 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate(); // Hook for programmatic navigation
+    const { login } = useAuth();
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL; 
 
     const handleSubmit = async (e) => {
         e.preventDefault(); // Prevent default form submission behavior (page reload)
@@ -14,11 +17,12 @@ const LoginPage = ({ toggleTheme }) => { // Assuming toggleTheme might be passed
         setLoading(true); // Start loading state
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', { // Your backend login endpoint
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include', // Include cookies in the request
                 body: JSON.stringify({ email, password }),
             });
 
@@ -26,17 +30,15 @@ const LoginPage = ({ toggleTheme }) => { // Assuming toggleTheme might be passed
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Login failed');
             }
-
-            // If login is successful, you might get user data back, but the JWT is in the cookie
             const data = await response.json();
             console.log('Login successful:', data);
-            
-            // Redirect to homepage or problems page upon successful login
-            navigate('/problems'); // Or navigate('/') if you prefer homepage
+
+            login(data); 
+            navigate('/problems'); 
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false); // End loading state
+            setLoading(false); 
         }
     };
 
