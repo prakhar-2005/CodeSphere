@@ -13,12 +13,10 @@ export const AuthProvider = ({ children }) => {
     const [loadingAuth, setLoadingAuth] = useState(true);
     const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL; 
 
-    // console.log("AuthContext: Provider Rendered. isAuthenticated:", isAuthenticated, "loadingAuth:", loadingAuth, "currentUser:", currentUser ? currentUser.username : 'null');
 
     const login = (userData) => {
         setCurrentUser(userData);
         setIsAuthenticated(true);
-        // console.log("AuthContext: login() executed. isAuthenticated now TRUE for user:", userData.username);
     };
 
     const logout = async () => {
@@ -53,7 +51,6 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkAuthStatus = async () => {
             setLoadingAuth(true); 
-            // console.log("AuthContext: checkAuthStatus useEffect triggered.");
             try {
                 const response = await fetch(`${API_BASE_URL}/auth/me`, {
                     method: 'GET',
