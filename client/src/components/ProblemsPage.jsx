@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const getDifficultyColor = (difficulty) => {
   switch (difficulty) {
@@ -116,9 +117,9 @@ const ProblemsPage = () => {
                 {currentProblems.map((problem) => (
                   <tr key={problem._id} className="hover:bg-gray-100 dark:hover:bg-slate-900 transition duration-150 ease-in-out">
                     <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
-                      <a href={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                      <Link to={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
                         {problem.name}
-                      </a>
+                      </Link>
                     </td>
                     <td className="py-4 px-6 whitespace-nowrap text-sm">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getDifficultyColor(problem.difficulty)}`}>
@@ -142,9 +143,9 @@ const ProblemsPage = () => {
                       {problem.rating}
                     </td>
                     <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
-                      <a href={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                      <Link to={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
                         Solve
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}

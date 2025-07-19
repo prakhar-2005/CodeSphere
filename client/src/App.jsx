@@ -7,6 +7,7 @@ import Footer from './components/Footer'
 import LoginPage from './components/LoginPage'
 import { AuthProvider } from './context/AuthContext'
 import SignupPage from './components/SignupPage'
+import ProblemDetailPage from './components/ProblemDetailPage'
 
 function App() {
   const [theme, setTheme] = useState('dark');
@@ -42,8 +43,9 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/problems" element={<Problems />} />
           <Route path="/signup" element={<SignupPage/>} />
+          <Route path="/problems" element={<Problems />} />
+          <Route path="/problems/:id" element={<ProblemDetailPage/>} />
         </Routes>
         <Footer />
       </Router>
