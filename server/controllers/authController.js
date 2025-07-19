@@ -1,6 +1,18 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
+// Helper function to get a readable error message from Mongoose validation errors
+const getMongooseErrorMessage = (err) => {
+  let message = 'Server Error';
+  if (err.name === 'ValidationError') {
+    // Collect all validation error messages
+    message = Object.values(err.errors).map(val => val.message).join(', ');
+  } else if (err.code === 11000) { // Duplicate key error
+    message = `Duplicate field value entered: ${Object.keys(err.keyValue)[0]} already exists.`;
+  }
+  return message;
+};
+
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -35,7 +47,7 @@ const registerUser = async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(400).json({ message: getMongooseErrorMessage(error) });
   }
 };
 
@@ -64,7 +76,7 @@ const loginUser = async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: getMongooseErrorMessage(error) });
   }
 };
 

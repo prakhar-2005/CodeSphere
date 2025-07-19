@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Footer from './components/Footer'
 import LoginPage from './components/LoginPage'
 import { AuthProvider } from './context/AuthContext'
+import SignupPage from './components/SignupPage'
 
 function App() {
   const [theme, setTheme] = useState('dark');
@@ -19,7 +20,7 @@ function App() {
       // If user has a system preference for dark mode, use that.
       setTheme('dark');
     }
-  }, []); // Empty dependency array means this runs only once on mount
+  }, []); 
 
   useEffect(() => {
     if(theme == 'dark') {
@@ -42,6 +43,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/problems" element={<Problems />} />
+          <Route path="/signup" element={<SignupPage/>} />
         </Routes>
         <Footer />
       </Router>
