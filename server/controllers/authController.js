@@ -1,11 +1,10 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
-// Helper function to get a readable error message from Mongoose validation errors
+// get readable error message from Mongoose validation errors
 const getMongooseErrorMessage = (err) => {
   let message = 'Server Error';
   if (err.name === 'ValidationError') {
-    // Collect all validation error messages
     message = Object.values(err.errors).map(val => val.message).join(', ');
   } else if (err.code === 11000) { // Duplicate key error
     message = `Duplicate field value entered: ${Object.keys(err.keyValue)[0]} already exists.`;
