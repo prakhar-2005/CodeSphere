@@ -4,9 +4,6 @@ import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({theme, toggleTheme}) => {
     const { isAuthenticated, currentUser, logout, loadingAuth } = useAuth(); 
-
-    // console.log("Navbar: Rendered. isAuthenticated:", isAuthenticated, "loadingAuth:", loadingAuth, "currentUser:", currentUser ? currentUser.username : 'null');
-
     const [showNavbar, setShowNavbar] = useState(true);
     const lastScrollY = useRef(0); 
     const ticking = useRef(false); // to prevent multiple calls to requestAnimationFrame
@@ -43,7 +40,6 @@ const Navbar = ({theme, toggleTheme}) => {
     };
 
     if (loadingAuth) {
-        // console.log("Navbar: Rendering NULL because loadingAuth is TRUE.");
         return null; 
     }
 

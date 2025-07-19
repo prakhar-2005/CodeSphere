@@ -31,8 +31,6 @@ const LoginPage = ({ toggleTheme }) => {
                 throw new Error(errorData.message || 'Login failed');
             }
             const data = await response.json();
-            console.log('Login successful:', data);
-
             login(data); 
             navigate('/problems'); 
         } catch (err) {
