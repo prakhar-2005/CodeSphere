@@ -87,7 +87,7 @@ int main() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ code, language: selectedLanguage, customInput }), // <--- This is correct
+                body: JSON.stringify({ code, language: selectedLanguage, customInput }), 
             });
 
             if (!response.ok) {
@@ -121,7 +121,7 @@ int main() {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include', // Crucial for sending JWT cookie
-                body: JSON.stringify({ problemId: id, code, language: selectedLanguage }), // <--- This is correct
+                body: JSON.stringify({ problemId: id, code, language: selectedLanguage }), 
             });
 
             if (!response.ok) {
