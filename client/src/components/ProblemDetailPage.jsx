@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import Editor from '@monaco-editor/react';
+import { useRef } from 'react';
 
 const ProblemDetailPage = () => {
     const { id } = useParams(); // To get problem ID from URL
@@ -18,6 +19,63 @@ const ProblemDetailPage = () => {
     const [output, setOutput] = useState('// Your code output will appear here');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
+    const [showSnackbar, setShowSnackbar] = useState(false);
+
+    const leftRef = useRef(null);
+    const rightRef = useRef(null);
+    const [leftWidth, setLeftWidth] = useState(50); // percent width
+    const [isDragging, setIsDragging] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+
+    const startDragging = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (!isDragging || !leftRef.current) return;
+
+            const container = leftRef.current.parentNode;
+            const containerRect = container.getBoundingClientRect();
+            const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+
+            // Clamp between 20% and 80%
+            if (newLeftWidth > 20 && newLeftWidth < 80) {
+                setLeftWidth(newLeftWidth);
+            }
+        };
+
+        const stopDragging = () => {
+            if (isDragging) {
+                setIsDragging(false);
+            }
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', stopDragging);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', stopDragging);
+        };
+    }, [isDragging]);
+
+    const handleCopy = (text) => {
+        navigator.clipboard.writeText(text);
+        setShowSnackbar(true);
+        setTimeout(() => setShowSnackbar(false), 2000); // hide after 1s
+    };
 
     const languagesOptions = [
         { value: 'python', label: 'Python' },
@@ -75,7 +133,7 @@ int main() {
 
     useEffect(() => {
         setCode(starterCodeMap[selectedLanguage] || '// Write your code here');
-    }, [selectedLanguage]); 
+    }, [selectedLanguage]);
 
     const handleRun = async () => {
         setIsRunning(true);
@@ -87,7 +145,7 @@ int main() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ code, language: selectedLanguage, customInput }), 
+                body: JSON.stringify({ code, language: selectedLanguage, customInput }),
             });
 
             if (!response.ok) {
@@ -121,7 +179,7 @@ int main() {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include', // Crucial for sending JWT cookie
-                body: JSON.stringify({ problemId: id, code, language: selectedLanguage }), 
+                body: JSON.stringify({ problemId: id, code, language: selectedLanguage }),
             });
 
             if (!response.ok) {
@@ -177,10 +235,21 @@ int main() {
         <div className="flex flex-col min-h-screen p-0 pt-[4.5rem]
                     bg-gradient-to-br from-white to-gray-100 text-gray-900
                     dark:from-gray-900 dark:to-black dark:text-white">
-            <div className="container mx-auto flex flex-col lg:flex-row gap-8 lg:gap-2 p-3 flex-grow" style={{ height: 'calc(100vh - 6.5rem)' }}>
-
+            <div
+                className={`container mx-auto flex flex-grow p-3 relative
+                ${isMobile ? 'flex-col' : 'flex-row'}
+                ${isMobile ? 'gap-4' : 'gap-0'}`}
+                style={{ height: 'calc(100vh - 6.5rem)' }}
+            >
                 {/* Left Column: Problem Details */}
-                <div className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700 overflow-y-auto">
+                <div
+                    ref={leftRef}
+                    className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700 overflow-y-auto"
+                    style={{
+                        width: isMobile ? '100%' : `${leftWidth}%`,
+                        transition: isDragging ? 'none' : 'width 0.2s'
+                    }}
+                >
                     {/* Problem Header/Title */}
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-3xl md:text-4xl font-extrabold text-blue-600 dark:text-blue-400">
@@ -223,15 +292,36 @@ int main() {
                             {problem.sampleTestCases && problem.sampleTestCases.map((sample, index) => (
                                 <div key={index} className="bg-gray-100 dark:bg-gray-700 p-4 rounded-md mb-4 last:mb-0">
                                     <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">Input {index + 1}:</h4>
-                                    <pre className="bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 rounded-md overflow-x-auto text-sm">
-                                        <code>{sample.input}</code>
-                                    </pre>
+                                    <div className="relative group">
+                                        <button
+                                            onClick={() => handleCopy(sample.input)}
+                                            className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            Copy
+                                        </button>
+                                        <pre className="bg-gray-300 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 rounded-md overflow-x-auto text-sm">
+                                            <code>{sample.input}</code>
+                                        </pre>
+                                    </div>
                                     <h4 className="font-semibold text-gray-800 dark:text-gray-100 mt-3 mb-1">Output {index + 1}:</h4>
-                                    <pre className="bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 rounded-md overflow-x-auto text-sm">
-                                        <code>{sample.output}</code>
-                                    </pre>
+                                    <div className="relative group">
+                                        <button
+                                            onClick={() => handleCopy(sample.input)}
+                                            className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            Copy
+                                        </button>
+                                        <pre className="bg-gray-300 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 rounded-md overflow-x-auto text-sm">
+                                            <code>{sample.output}</code>
+                                        </pre>
+                                    </div>
                                 </div>
                             ))}
+                            {showSnackbar && (
+                                <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-300 z-50">
+                                    Copied to clipboard!
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -250,8 +340,24 @@ int main() {
                     </div>
                 </div>
 
+                {/* Divider */}
+                {!isMobile && (
+                    <div
+                        onMouseDown={startDragging}
+                        className="w-1 cursor-col-resize bg-gray-300 dark:bg-gray-600 hover:bg-blue-400 transition-colors"
+                        style={{ zIndex: 10 }}
+                    />
+                )}
+
                 {/* Right Column: Compiler Area */}
-                <div className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700">
+                <div
+                    ref={rightRef}
+                    className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700"
+                    style={{
+                        width: isMobile ? '100%' : `${100 - leftWidth}%`,
+                        transition: isDragging ? 'none' : 'width 0.2s'
+                    }}
+                >
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Code Editor</h2>
                         {/* Language Dropdown */}
@@ -284,15 +390,6 @@ int main() {
                                 scrollBeyondLastLine: false,
                                 automaticLayout: true,
                             }}
-                            // Removed inline style prop as options and theme props handle most styling
-                            // style={{
-                            //   fontFamily: '"Fira Code", "Consolas", "monospace"',
-                            //   fontSize: 16,
-                            //   lineHeight: '1.5',
-                            //   color: theme === 'dark' ? '#f8f8f2' : '#333',
-                            //   backgroundColor: theme === 'dark' ? '#282a36' : '#f8f8f2',
-                            //   borderRadius: '0.375rem',
-                            // }}
                             className="code-editor-container" // Keep custom class for potential external CSS if needed
                         />
                     </div>
