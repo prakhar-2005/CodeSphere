@@ -31,6 +31,30 @@ const ProblemSchema = mongoose.Schema({
         },
         },
     ],
+    testCases: [ 
+      {
+        input: {
+          type: String,
+          required: true,
+        },
+        output: {
+          type: String,
+          required: true,
+        },
+        // You could add more fields here like 'isSample' if you wanted to combine
+        // sample and hidden test cases into one array, but separating is clearer.
+      },
+    ],
+    timeLimit: {
+      type: Number,
+      required: [true, 'Please add a time limit in milliseconds'],
+      min: [1000, 'Time limit must be at least 1000ms'], 
+    },
+    memoryLimit: { // Memory limit in megabytes (e.g., 256 for 256MB)
+      type: Number,
+      required: [true, 'Please add a memory limit in megabytes'],
+      min: [256, 'Memory limit must be at least 256MB'], 
+    },
     constraints: {
         type: String,
         required: [true, 'Please add problem constraints'],
@@ -50,7 +74,7 @@ const ProblemSchema = mongoose.Schema({
     },
     },
     {
-    timestamps: true, // Add createdAt and updatedAt fields automatically
+    timestamps: true, 
     }
 );
 

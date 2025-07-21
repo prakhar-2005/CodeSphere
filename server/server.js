@@ -3,7 +3,8 @@ const dotenv = require('dotenv')
 const cors = require('cors'); 
 const connectDB = require('./config/db'); 
 const problemRoutes = require('./routes/problemRoutes'); 
-const authRoutes = require('./routes/authRoutes')
+const authRoutes = require('./routes/authRoutes'); 
+const submissionRoutes = require('./routes/submissionRoutes');
 const cookieParser = require('cookie-parser');
 
 dotenv.config(); // Load environment variables from .env
@@ -20,6 +21,7 @@ app.use(cors({
 
 app.use('/api/problems', problemRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/submission', submissionRoutes);
 
 app.get('/', (req, res) => {
     res.send('CodeSphere Backend API is running!');

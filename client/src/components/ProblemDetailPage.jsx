@@ -2,16 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-import Editor from 'react-simple-code-editor';
-import { highlight, languages } from 'prismjs/components/prism-core';
-import 'prismjs/components/prism-clike';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-python';
-import 'prismjs/components/prism-c';
-import 'prismjs/components/prism-cpp';
-import 'prismjs/components/prism-java';
-import 'prismjs/themes/prism.css'; // Light theme
-// import 'prismjs/themes/prism-tomorrow.css'; 
+import Editor from '@monaco-editor/react';
 
 const ProblemDetailPage = () => {
     const { id } = useParams(); // To get problem ID from URL
@@ -21,18 +12,44 @@ const ProblemDetailPage = () => {
     const [problem, setProblem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
     const [code, setCode] = useState('// Write your code here');
     const [selectedLanguage, setSelectedLanguage] = useState('cpp');
     const [customInput, setCustomInput] = useState('');
     const [output, setOutput] = useState('// Your code output will appear here');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isRunning, setIsRunning] = useState(false);
+
     const languagesOptions = [
-        { value: 'javascript', label: 'JavaScript' },
         { value: 'python', label: 'Python' },
         { value: 'c', label: 'C' },
         { value: 'cpp', label: 'C++' },
         { value: 'java', label: 'Java' },
     ];
+
+    const starterCodeMap = {
+        cpp: `#include<iostream>
+using namespace std;
+
+int main() {
+    // your code goes here
+    return 0;
+}`,
+        java: `public class Main {
+    public static void main(String[] args) {
+        // your code goes here
+    }
+}`,
+        python: `def main():
+    # your code goes here
+
+main()`,
+        c: `#include <stdio.h>
+
+int main() {
+    // your code goes here
+    return 0;
+}`
+    };
 
     const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
 
@@ -45,8 +62,7 @@ const ProblemDetailPage = () => {
                 }
                 const data = await response.json();
                 setProblem(data);
-                // set initial code based on language 
-                // setCode(data.starterCode[selectedLanguage] || '// Write your code here');
+                setCode(starterCodeMap[selectedLanguage] || '// Write your code here');
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -57,30 +73,70 @@ const ProblemDetailPage = () => {
         fetchProblemDetails();
     }, [id, API_BASE_URL]); // Re-fetch if ID or API_BASE_URL changes (though API_BASE_URL won't change)
 
-    const handleRun = () => {
-        // Placeholder 
-        setOutput(`Running code in ${selectedLanguage} with input:\n${customInput || 'No custom input'}\n\n(This is a frontend simulation. Actual compilation and execution will be handled by the backend judge.)`);
+    useEffect(() => {
+        setCode(starterCodeMap[selectedLanguage] || '// Write your code here');
+    }, [selectedLanguage]); 
 
-        // Simulate some processing time
-        setTimeout(() => {
-            setOutput(prev => prev + "\n\n... Simulation complete. No actual output generated.");
-        }, 1500);
+    const handleRun = async () => {
+        setIsRunning(true);
+        setOutput('Running code...');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/submission/run`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code, language: selectedLanguage, customInput }), // <--- This is correct
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to run code.');
+            }
+
+            const data = await response.json();
+            setOutput(data.output || data.error);
+        } catch (err) {
+            setOutput(`Error running code: ${err.message}`);
+            console.error('Run Code Error:', err);
+        } finally {
+            setIsRunning(false);
+        }
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!isAuthenticated) {
-            alert('Please log in to submit your solution.'); // custom model for later
+            alert('Please log in to submit your solution.');
             navigate('/login');
             return;
         }
+        setIsSubmitting(true);
+        setOutput('Submitting solution...');
 
-        // Placeholder for submitting code logic
-        setOutput(`Submitting solution in ${selectedLanguage} for Problem ID: ${id}\n\nCode:\n${code}\n\n(Submission logic will be implemented in the backend.)`);
+        try {
+            const response = await fetch(`${API_BASE_URL}/submission/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Crucial for sending JWT cookie
+                body: JSON.stringify({ problemId: id, code, language: selectedLanguage }), // <--- This is correct
+            });
 
-        // Simulate submission processing
-        setTimeout(() => {
-            setOutput(prev => prev + "\n\n... Submission received. Awaiting judge results.");
-        }, 2000);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to submit solution.');
+            }
+
+            const data = await response.json();
+            setOutput(`Submission Result: ${data.verdict}\n${data.simulatedOutput || data.message}`);
+        } catch (err) {
+            setOutput(`Error submitting solution: ${err.message}`);
+            console.error('Submit Solution Error:', err);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (loading) {
@@ -121,7 +177,7 @@ const ProblemDetailPage = () => {
         <div className="flex flex-col min-h-screen p-0 pt-[4.5rem]
                     bg-gradient-to-br from-white to-gray-100 text-gray-900
                     dark:from-gray-900 dark:to-black dark:text-white">
-            <div className="container mx-auto flex flex-col lg:flex-row gap-8 lg:gap-2 p-3 flex-grow" style={{ height: 'calc(100vh - 6.5rem)' }}> 
+            <div className="container mx-auto flex flex-col lg:flex-row gap-8 lg:gap-2 p-3 flex-grow" style={{ height: 'calc(100vh - 6.5rem)' }}>
 
                 {/* Left Column: Problem Details */}
                 <div className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700 overflow-y-auto">
@@ -191,8 +247,8 @@ const ProblemDetailPage = () => {
                                 ))}
                             </div>
                         </div>
-                    </div> 
-                </div> 
+                    </div>
+                </div>
 
                 {/* Right Column: Compiler Area */}
                 <div className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700">
@@ -216,22 +272,28 @@ const ProblemDetailPage = () => {
                     <div className="flex-grow min-h-[350px] bg-gray-100 dark:bg-gray-900 rounded-md overflow-y-auto relative">
                         <Editor
                             value={code}
-                            onValueChange={setCode}
-                            highlight={code =>
-                                highlight(code, languages[selectedLanguage] || languages.clike, selectedLanguage)
-                            }
-                            padding={15}
-                            style={{
-                                fontFamily: '"Fira Code", "Consolas", "monospace"',
-                                fontSize: 16,
-                                lineHeight: '1.5',
-                                color: '#f8f8f2',
-                                backgroundColor: '#282a36',
-                                borderRadius: '0.375rem',
-                                height: '100%', 
-                                overflow: 'auto', 
+                            onChange={(newValue) => setCode(newValue)}
+                            // Monaco Editor's 'language' prop directly accepts the language ID
+                            language={selectedLanguage} // <--- CHANGED: Use language prop
+                            theme='vs-dark' // <--- CHANGED: Use Monaco themes
+                            options={{
+                                domReadOnly: false,
+                                readOnly: false,
+                                minimap: { enabled: false },
+                                lineNumbers: 'on',
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
                             }}
-                            className="code-editor-container h-full"
+                            // Removed inline style prop as options and theme props handle most styling
+                            // style={{
+                            //   fontFamily: '"Fira Code", "Consolas", "monospace"',
+                            //   fontSize: 16,
+                            //   lineHeight: '1.5',
+                            //   color: theme === 'dark' ? '#f8f8f2' : '#333',
+                            //   backgroundColor: theme === 'dark' ? '#282a36' : '#f8f8f2',
+                            //   borderRadius: '0.375rem',
+                            // }}
+                            className="code-editor-container" // Keep custom class for potential external CSS if needed
                         />
                     </div>
 
@@ -258,15 +320,17 @@ const ProblemDetailPage = () => {
                     <div className="mt-6 flex justify-end space-x-4">
                         <button
                             onClick={handleRun}
+                            disabled={isRunning}
                             className="px-6 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition duration-300 shadow-md transform hover:scale-105"
                         >
-                            Run
+                            {isRunning ? 'Running...' : 'Run'}
                         </button>
                         <button
                             onClick={handleSubmit}
+                            disabled={isSubmitting}
                             className="px-6 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition duration-300 shadow-md transform hover:scale-105"
                         >
-                            Submit
+                            {isSubmitting ? 'Submitting...' : 'Submit'}
                         </button>
                     </div>
                 </div>
