@@ -8,6 +8,8 @@ import LoginPage from './components/LoginPage'
 import { AuthProvider } from './context/AuthContext'
 import SignupPage from './components/SignupPage'
 import ProblemDetailPage from './components/ProblemDetailPage'
+import AddProblemPage from './components/AddProblemPage'
+import EditProblemPage from './components/EditProblemPage'
 
 function App() {
   const [theme, setTheme] = useState('dark');
@@ -46,6 +48,8 @@ function App() {
           <Route path="/signup" element={<SignupPage/>} />
           <Route path="/problems" element={<Problems />} />
           <Route path="/problems/:id" element={<ProblemDetailPage/>} />
+          <Route path="/admin/add-problem" element={<AddProblemPage />} />
+          <Route path="/admin/edit-problem/:id" element={<EditProblemPage />} />
         </Routes>
         <Footer />
       </Router>

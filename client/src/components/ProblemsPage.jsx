@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const getDifficultyColor = (difficulty) => {
   switch (difficulty) {
@@ -11,34 +12,62 @@ const getDifficultyColor = (difficulty) => {
 };
 
 const ProblemsPage = () => {
+  const { currentUser, isAuthenticated } = useAuth();
+  const isAdmin = isAuthenticated && currentUser && currentUser.role === 'admin';
+
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Pagination 
   const [currentPage, setCurrentPage] = useState(1);
-  const [problemsPerPage] = useState(10); 
+  const [problemsPerPage] = useState(10);
 
   const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL
 
-  useEffect(() => {
-    const fetchProblems = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/problems`); 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setProblems(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  const fetchProblems = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/problems`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      const data = await response.json();
+      setProblems(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProblems();
-  }, []); 
+  }, []);
+
+  const handleDeleteProblem = async (problemId) => {
+    if (!window.confirm('Are you sure you want to delete this problem? This action cannot be undone.')) {
+      return; // User cancelled
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/problems/${problemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', 
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete problem.');
+      }
+      alert('Problem deleted successfully!');
+      fetchProblems();
+    } catch (err) {
+      setError(err.message);
+      alert('Error deleting problem: ' + err.message);
+    }
+  };
 
   const indexOfLastProblem = currentPage * problemsPerPage;
   const indexOfFirstProblem = indexOfLastProblem - problemsPerPage;
@@ -79,7 +108,7 @@ const ProblemsPage = () => {
     <div className="flex flex-col min-h-screen p-8 pt-24
                     bg-gradient-to-br from-white to-gray-100 text-gray-900
                     dark:from-gray-900 dark:to-black dark:text-white">
-      
+
       <header className="text-center mt-8 mb-10 px-4">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 animate-fade-in-up">
           Explore <span className="text-blue-600 drop-shadow-lg dark:text-blue-400">Problems</span>
@@ -88,6 +117,17 @@ const ProblemsPage = () => {
                       text-gray-700 dark:text-gray-300">
           Sharpen your coding skills with a diverse collection of algorithmic challenges.
         </p>
+        {/* Admin "Add Problem" Button */}
+        {isAdmin && (
+          <div className="mt-6">
+            <Link
+              to="/admin/add-problem" 
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 transition duration-300"
+            >
+              <i className="fas fa-plus-circle mr-2"></i> Add New Problem
+            </Link>
+          </div>
+        )}
       </header>
 
       <section className="flex-grow w-full max-w-6xl mx-auto mb-24">
@@ -109,7 +149,7 @@ const ProblemsPage = () => {
                     Rating
                   </th>
                   <th scope="col" className="py-3 px-6 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider rounded-tr-lg">
-                    Action
+                    {isAdmin ? 'Actions' : 'Action'}
                   </th>
                 </tr>
               </thead>
@@ -142,11 +182,25 @@ const ProblemsPage = () => {
                     <td className="py-4 px-6 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                       {problem.rating}
                     </td>
-                    <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
-                      <Link to={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
-                        Solve
-                      </Link>
-                    </td>
+                    {isAdmin ? (
+                      <td className="py-4 px-6 whitespace-nowrap text-sm font-medium flex space-x-5">
+                        <Link to={`/admin/edit-problem/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                          <i className="fas fa-pencil-alt"></i>
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteProblem(problem._id)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <i className="fas fa-trash-alt"></i> 
+                        </button>
+                      </td>
+                    ) : ( 
+                      <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
+                        <Link to={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                          Solve
+                        </Link>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -156,7 +210,7 @@ const ProblemsPage = () => {
           <p className="text-xl text-gray-400 col-span-full text-center">No problems found.</p>
         )}
 
-        {problems.length > problemsPerPage && ( 
+        {problems.length > problemsPerPage && (
           <nav className="flex justify-center items-center space-x-2 mt-8">
             <button
               onClick={goToFirstPage}

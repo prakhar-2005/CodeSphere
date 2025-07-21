@@ -30,7 +30,6 @@ const protect = async (req, res, next) => {
   }
 };
 
-//for future use, role-based access control
 const authorize = (roles = []) => {
     if (typeof roles === 'string') {
         roles = [roles];
