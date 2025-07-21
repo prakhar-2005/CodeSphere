@@ -26,6 +26,9 @@ const ProblemDetailPage = () => {
     const [leftWidth, setLeftWidth] = useState(50); // percent width
     const [isDragging, setIsDragging] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [showOutput, setShowOutput] = useState(false);
+    const [isSubmitResult, setIsSubmitResult] = useState(false);
+
 
     useEffect(() => {
         const handleResize = () => {
@@ -121,6 +124,9 @@ int main() {
                 const data = await response.json();
                 setProblem(data);
                 setCode(starterCodeMap[selectedLanguage] || '// Write your code here');
+                if (data.sampleTestCases && data.sampleTestCases.length > 0) {
+                    setCustomInput(data.sampleTestCases[0].input);
+                }
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -138,6 +144,8 @@ int main() {
     const handleRun = async () => {
         setIsRunning(true);
         setOutput('Running code...');
+        setShowOutput(true);
+        setIsSubmitResult(false);
 
         try {
             const response = await fetch(`${API_BASE_URL}/submission/run`, {
@@ -170,6 +178,8 @@ int main() {
             return;
         }
         setIsSubmitting(true);
+        setShowOutput(true);
+        setIsSubmitResult(true);
         setOutput('Submitting solution...');
 
         try {
@@ -188,7 +198,13 @@ int main() {
             }
 
             const data = await response.json();
-            setOutput(`Submission Result: ${data.verdict}\n${data.simulatedOutput || data.message}`);
+            setOutput(data.verdict === 'Accepted'
+                ? '✅ Accepted'
+                : data.verdict === 'Wrong Answer'
+                    ? `❌ Wrong Answer on Test Case ${data.failedCaseIndex + 1}`
+                    : data.verdict === 'Time Limit Exceeded'
+                        ? '⏱️ Time Limit Exceeded'
+                        : `❌ ${data.verdict}`);
         } catch (err) {
             setOutput(`Error submitting solution: ${err.message}`);
             console.error('Submit Solution Error:', err);
@@ -244,7 +260,7 @@ int main() {
                 {/* Left Column: Problem Details */}
                 <div
                     ref={leftRef}
-                    className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700 overflow-y-auto"
+                    className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700 overflow-y-auto"
                     style={{
                         width: isMobile ? '100%' : `${leftWidth}%`,
                         transition: isDragging ? 'none' : 'width 0.2s'
@@ -352,7 +368,7 @@ int main() {
                 {/* Right Column: Compiler Area */}
                 <div
                     ref={rightRef}
-                    className="lg:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700"
+                    className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700"
                     style={{
                         width: isMobile ? '100%' : `${100 - leftWidth}%`,
                         transition: isDragging ? 'none' : 'width 0.2s'
@@ -375,7 +391,7 @@ int main() {
                     </div>
 
                     {/* Code Editor */}
-                    <div className="flex-grow min-h-[350px] bg-gray-100 dark:bg-gray-900 rounded-md overflow-y-auto relative">
+                    <div className="flex-grow min-h-[400px] bg-gray-100 dark:bg-gray-900 rounded-md overflow-y-auto relative">
                         <Editor
                             value={code}
                             onChange={(newValue) => setCode(newValue)}
@@ -406,12 +422,16 @@ int main() {
                     </div>
 
                     {/* Output */}
-                    <div className="mt-4">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Output</h3>
-                        <pre className="w-full h-24 p-3 bg-gray-100 dark:bg-gray-900 rounded-md border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 overflow-auto whitespace-pre-wrap">
-                            <code>{output}</code>
-                        </pre>
-                    </div>
+                    {showOutput && (
+                        <div className="mt-4">
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Output</h3>
+                            <pre className="w-full min-h-[5rem] p-3 bg-gray-100 dark:bg-gray-900 rounded-md border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 overflow-auto whitespace-pre-wrap">
+                                <code>
+                                    {output}
+                                </code>
+                            </pre>
+                        </div>
+                    )}
 
                     {/* Run/Submit Buttons */}
                     <div className="mt-6 flex justify-end space-x-4">
