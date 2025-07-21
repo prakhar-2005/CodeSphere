@@ -75,7 +75,7 @@ const HomePage = () => {
       </section>
 
       {/* Tailwind CSS Animation Keyframes (no changes here) */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }

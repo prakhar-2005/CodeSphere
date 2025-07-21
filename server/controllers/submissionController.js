@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Problem = require('../models/Problem');
 const { generateFile } = require('../utils/generateFile');
 const { generateInputFile } = require('../utils/generateInputFile');
+const Submission = require('../models/Submission');
 
 const TEMP_DIR = path.join(__dirname, '..', 'temp');
 
@@ -113,7 +114,6 @@ const submitCode = async (req, res) => {
   try {
     const problem = await Problem.findById(problemId);
     if (!problem) return res.status(404).json({ message: 'Problem not found.' });
-
     const { testCases, timeLimit } = problem;
     const fileExtension = { python: 'py', c: 'c', cpp: 'cpp', java: 'java' }[language];
 
@@ -125,6 +125,7 @@ const submitCode = async (req, res) => {
 
     const filePath = await generateFile(fileExtension, code, className);
     const results = [];
+    let failedCaseIndex;
     let verdict = 'Accepted';
 
     for (const [index, testCase] of testCases.entries()) {
@@ -174,6 +175,10 @@ const submitCode = async (req, res) => {
               }
             }
 
+            if (verdict !== 'Accepted' && failedCaseIndex === undefined) {
+              failedCaseIndex = index; 
+            }
+
             results.push({
               testCase: index + 1,
               status: testStatus,
@@ -207,9 +212,20 @@ const submitCode = async (req, res) => {
       if (verdict !== 'Accepted') break;
     }
 
+    await Submission.create({
+      userId,
+      problemId,
+      contestId: req.body.contestId || null,
+      language,
+      code,
+      status: verdict,
+      isContestSubmission: !!req.body.contestId,
+    });
+
     res.status(200).json({
       message: 'Submission judged successfully.',
       verdict,
+      failedCaseIndex,
       testResults: results,
     });
   } catch (error) {
