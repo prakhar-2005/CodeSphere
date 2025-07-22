@@ -176,7 +176,7 @@ const submitCode = async (req, res) => {
             }
 
             if (verdict !== 'Accepted' && failedCaseIndex === undefined) {
-              failedCaseIndex = index; 
+              failedCaseIndex = index;
             }
 
             results.push({
@@ -194,6 +194,7 @@ const submitCode = async (req, res) => {
         if (compileCommand) {
           exec(compileCommand, { timeout: 10000 }, (compileError, _, compileStderr) => {
             if (compileError) {
+              failedCaseIndex = index;
               verdict = 'Compilation Error';
               results.push({
                 testCase: index + 1,
@@ -220,6 +221,8 @@ const submitCode = async (req, res) => {
       code,
       status: verdict,
       isContestSubmission: !!req.body.contestId,
+      failedCaseIndex,
+      testResults: results,
     });
 
     res.status(200).json({
@@ -234,7 +237,34 @@ const submitCode = async (req, res) => {
   }
 };
 
+const getUserSubmissionsForProblem = async (req, res) => {
+  const { problemId } = req.params;
+  const userId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(problemId)) {
+    return res.status(400).json({ message: 'Invalid problem ID format.' });
+  }
+
+  try {
+    const submissions = await Submission.find({
+      userId,
+      problemId,
+      isContestSubmission: false // Optional: only non-contest submissions
+    })
+      .sort({ submittedAt: -1 }) // Most recent first
+      .select('-__v') // Optional: remove metadata
+      .populate('problemId', 'name') // Optional: attach problem name
+      .populate('userId', 'username'); // Optional: attach user info
+
+    res.status(200).json({ submissions });
+  } catch (error) {
+    console.error('Error fetching submissions:', error);
+    res.status(500).json({ message: 'Server error while fetching submissions.' });
+  }
+};
+
 module.exports = {
   runCode,
   submitCode,
+  getUserSubmissionsForProblem,
 };

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const submissionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User", 
+    ref: "User",
     required: true,
   },
   problemId: {
@@ -13,7 +13,7 @@ const submissionSchema = new mongoose.Schema({
   },
   contestId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Contest", 
+    ref: "Contest",
     default: null,
   },
   language: {
@@ -36,6 +36,19 @@ const submissionSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  testResults: [
+    {
+      testCase: Number,
+      status: String,
+      actualOutput: String,
+      expectedOutput: String,
+      error: String,
+    }
+  ],
+  failedCaseIndex: {
+    type: Number,
+    default: null,
+  }
 });
 
 const Submission = mongoose.model("Submission", submissionSchema);
