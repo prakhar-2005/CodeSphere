@@ -241,22 +241,38 @@ const getUserSubmissionsForProblem = async (req, res) => {
   const { problemId } = req.params;
   const userId = req.user._id;
 
+  // pagination params
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
   if (!mongoose.Types.ObjectId.isValid(problemId)) {
     return res.status(400).json({ message: 'Invalid problem ID format.' });
   }
 
   try {
+    const total = await Submission.countDocuments({
+      userId,
+      problemId,
+    });
+
     const submissions = await Submission.find({
       userId,
       problemId,
-      isContestSubmission: false // Optional: only non-contest submissions
     })
-      .sort({ submittedAt: -1 }) // Most recent first
-      .select('-__v') // Optional: remove metadata
-      .populate('problemId', 'name') // Optional: attach problem name
-      .populate('userId', 'username'); // Optional: attach user info
+      .sort({ submittedAt: -1 })
+      .skip(skip)
+      .limit(limit) 
+      .select('-__v') // remove metadata
+      .populate('problemId', 'name') 
+      .populate('userId', 'username'); 
 
-    res.status(200).json({ submissions });
+    res.status(200).json({ 
+      submissions,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+     });
   } catch (error) {
     console.error('Error fetching submissions:', error);
     res.status(500).json({ message: 'Server error while fetching submissions.' });

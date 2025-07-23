@@ -9,7 +9,7 @@ import 'monaco-editor/esm/vs/basic-languages/python/python.contribution';
 import 'monaco-editor/esm/vs/basic-languages/java/java.contribution';
 
 const ProblemDetailPage = () => {
-    const { id } = useParams(); // To get problem ID from URL
+    const { id } = useParams(); // get problem ID from URL
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
 
@@ -39,6 +39,13 @@ const ProblemDetailPage = () => {
     const [theme, setTheme] = useState(
         document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'
     );
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 15;
+
+    useEffect(() => {
+        setPage(1); 
+    }, [id]);
 
     useEffect(() => {
         const observer = new MutationObserver(() => {
@@ -61,10 +68,10 @@ const ProblemDetailPage = () => {
 
             try {
                 const res = await fetch(
-                    `${import.meta.env.VITE_BACKEND_BASE_URL}/submission/${id}/mine`,
+                    `${import.meta.env.VITE_BACKEND_BASE_URL}/submission/${id}/mine?page=${page}&limit=${limit}`,
                     {
                         method: 'GET',
-                        credentials: 'include', 
+                        credentials: 'include',
                     }
                 );
 
@@ -74,6 +81,7 @@ const ProblemDetailPage = () => {
 
                 const data = await res.json();
                 setSubmissions(data.submissions);
+                setTotalPages(data.totalPages);
             } catch (err) {
                 setSubmissionError(err.response?.data?.message || 'Failed to load submissions');
             } finally {
@@ -82,7 +90,7 @@ const ProblemDetailPage = () => {
         };
 
         fetchSubmissions();
-    }, [activeTab, id]);
+    }, [activeTab, id, isSubmitting, page]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -448,8 +456,8 @@ int main() {
                                         </thead>
                                         <tbody>
                                             {submissions.map((submission, index) => (
-                                                <tr key={submission._id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                                    <td className="p-2 border-b">{index + 1}</td>
+                                                <tr key={submission._id} className="hover:bg-gray-200 dark:hover:bg-gray-700">
+                                                    <td className="p-2 border-b">{(page - 1) * limit + index + 1}</td>
                                                     <td className="p-2 border-b">{submission.language.toUpperCase()}</td>
                                                     <td className={`p-2 border-b font-semibold ${submission.status === 'Accepted' ? 'text-green-600' : 'text-red-500'}`}>
                                                         {submission.status === 'Accepted'
@@ -480,6 +488,28 @@ int main() {
                                             ))}
                                         </tbody>
                                     </table>
+
+                                    <div className="flex justify-center items-center gap-2 mt-4">
+                                        <button
+                                            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                                            disabled={page === 1}
+                                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 rounded"
+                                        >
+                                            Previous
+                                        </button>
+
+                                        <span className="px-2 text-gray-700 dark:text-gray-200">
+                                            Page {page} of {totalPages}
+                                        </span>
+
+                                        <button
+                                            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                                            disabled={page === totalPages}
+                                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 rounded"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
 
                                     {selectedCode && (
                                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
