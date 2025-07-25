@@ -44,7 +44,7 @@ const ProblemDetailPage = () => {
     const limit = 15;
 
     useEffect(() => {
-        setPage(1); 
+        setPage(1);
     }, [id]);
 
     useEffect(() => {
@@ -436,7 +436,11 @@ int main() {
                         </>
                     ) : (
                         <div className="space-y-4">
-                            {loadingSubmissions ? (
+                            {!isAuthenticated ? (
+                                <div className="text-center p-4 text-gray-500">
+                                    Please log in to view your submissions.
+                                </div>
+                            ) : loadingSubmissions ? (
                                 <p className="text-gray-500">Loading submissions...</p>
                             ) : submissionError ? (
                                 <p className="text-red-500">{submissionError}</p>

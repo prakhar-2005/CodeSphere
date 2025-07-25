@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <div className="flex flex-col min-h-screen p-8 pt-24
                     bg-gradient-to-br from-white to-gray-100 text-gray-900 {/* Light mode defaults */}
@@ -24,12 +27,14 @@ const HomePage = () => {
           >
             Explore Problems
           </Link>
-          <Link
-            to="/signup"
-            className="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-lg transform hover:scale-105 transition duration-300 ease-in-out" 
-          >
-            Sign Up Now
-          </Link>
+          {!isAuthenticated && (
+            <Link
+              to="/signup"
+              className="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-lg transform hover:scale-105 transition duration-300 ease-in-out" 
+            >
+              Sign Up Now
+            </Link>
+          )}
         </div>
       </header>
 
