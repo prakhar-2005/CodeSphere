@@ -4,15 +4,29 @@ const Submission = require('../models/Submission');
 const axios = require('axios');
 
 const runCode = async (req, res) => {
-  const { code, language, customInput } = req.body;
+  const { problemId, code, language, customInput } = req.body;
   if (!code || !language) return res.status(400).json({ message: 'Code and language are required.' });
 
+  let timeLimit = 2000;
+  let memoryLimit = 256;
+
   try {
-    
+    if (problemId && mongoose.Types.ObjectId.isValid(problemId)) {
+      const problem = await Problem.findById(problemId);
+      if (problem) {
+        timeLimit = problem.timeLimit ?? timeLimit;
+        memoryLimit = problem.memoryLimit ?? memoryLimit;
+      } else {
+        console.log('No problem found for provided problemId in runCode');
+      }
+    }
+
     const response = await axios.post(`${process.env.COMPILER_BASE_URL}/run`, {
       code,
       language,
       input: customInput || '',
+      timeLimit,
+      memoryLimit,
     });
 
     return res.status(200).json(response.data);
@@ -36,13 +50,14 @@ const submitCode = async (req, res) => {
   try {
     const problem = await Problem.findById(problemId);
     if (!problem) return res.status(404).json({ message: 'Problem not found.' });
-    const { testCases, timeLimit } = problem;
+    const { testCases, timeLimit, memoryLimit } = problem;
 
     const response = await axios.post(`${process.env.COMPILER_BASE_URL}/judge`, {
       code,
       language,
       testCases,
       timeLimit,
+      memoryLimit,
     });
 
     const { verdict, testResults, failedCaseIndex } = response.data;
@@ -96,17 +111,17 @@ const getUserSubmissionsForProblem = async (req, res) => {
     })
       .sort({ submittedAt: -1 })
       .skip(skip)
-      .limit(limit) 
+      .limit(limit)
       .select('-__v') // remove metadata
-      .populate('problemId', 'name') 
-      .populate('userId', 'username'); 
+      .populate('problemId', 'name')
+      .populate('userId', 'username');
 
-    res.status(200).json({ 
+    res.status(200).json({
       submissions,
       total,
       page,
       totalPages: Math.ceil(total / limit)
-     });
+    });
   } catch (error) {
     console.error('Error fetching submissions:', error);
     res.status(500).json({ message: 'Server error while fetching submissions.' });

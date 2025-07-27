@@ -215,7 +215,12 @@ int main() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ code, language: selectedLanguage, customInput }),
+                body: JSON.stringify({ 
+                    code, 
+                    language: selectedLanguage, 
+                    customInput, 
+                    problemId: id 
+                }),
             });
 
             if (!response.ok) {
@@ -260,13 +265,29 @@ int main() {
             }
 
             const data = await response.json();
-            setOutput(data.verdict === 'Accepted'
-                ? '✅ Accepted'
-                : data.verdict === 'Wrong Answer'
-                    ? `❌ Wrong Answer on Test Case ${data.failedCaseIndex + 1}`
-                    : data.verdict === 'Time Limit Exceeded'
-                        ? '⏱️ Time Limit Exceeded'
-                        : `❌ ${data.verdict}`);
+            let verdictMessage = '';
+
+            if (data.verdict === 'Accepted') {
+                verdictMessage = '✅ Accepted';
+            } else if (data.verdict === 'Wrong Answer') {
+                verdictMessage = `❌ Wrong Answer on Test Case ${data.failedCaseIndex + 1}`;
+            } else if (data.verdict === 'Time Limit Exceeded') {
+                verdictMessage = data.failedCaseIndex !== undefined
+                    ? `⏱️ Time Limit Exceeded on Test Case ${data.failedCaseIndex + 1}`
+                    : '⏱️ Time Limit Exceeded';
+            } else if (data.verdict === 'Memory Limit Exceeded') {
+                verdictMessage = data.failedCaseIndex !== undefined
+                    ? `💾 Memory Limit Exceeded on Test Case ${data.failedCaseIndex + 1}`
+                    : '💾 Memory Limit Exceeded';
+            } else if (data.verdict === 'Runtime Error') {
+                verdictMessage = data.failedCaseIndex !== undefined
+                    ? `💥 Runtime Error on Test Case ${data.failedCaseIndex + 1}`
+                    : '💥 Runtime Error';
+            } else {
+                verdictMessage = `❌ ${data.verdict}`;
+            }
+
+            setOutput(verdictMessage);
         } catch (err) {
             setOutput(`Error submitting solution: ${err.message}`);
             console.error('Submit Solution Error:', err);
@@ -497,7 +518,7 @@ int main() {
                                         <button
                                             onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                                             disabled={page === 1}
-                                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 rounded"
+                                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 rounded dark:text-gray-800"
                                         >
                                             Previous
                                         </button>
@@ -509,7 +530,7 @@ int main() {
                                         <button
                                             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
                                             disabled={page === totalPages}
-                                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 rounded"
+                                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 rounded dark:text-gray-800"
                                         >
                                             Next
                                         </button>
