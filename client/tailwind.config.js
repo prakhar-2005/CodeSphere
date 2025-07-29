@@ -7,6 +7,15 @@ export default {
   ],
   theme: {
     extend: {
+      keyframes: {
+        shine: {
+          '0%': { transform: 'translateX(-100%) skewX(-12deg)' },
+          '100%': { transform: 'translateX(200%) skewX(-12deg)' },
+        },
+      },
+      animation: {
+        shine: 'shine 1.5s infinite linear', // You can adjust the duration (e.g., 1.5s), timing function (linear), and repetition (infinite)
+      },
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'], // use Lato for 'sans' font stack
       },},

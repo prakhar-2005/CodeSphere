@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Editor from '@monaco-editor/react';
 import { useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import { FaLightbulb, FaCode, FaHourglassHalf } from 'react-icons/fa';
 //manual preload so syntax highlighting doesn't take time on first render
 import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution';
 import 'monaco-editor/esm/vs/basic-languages/python/python.contribution';
@@ -42,6 +45,14 @@ const ProblemDetailPage = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const limit = 15;
+    const [simplifiedProblem, setSimplifiedProblem] = useState(null);
+    const [simplifyingProblem, setSimplifyingProblem] = useState(false);
+    const [simplifyError, setSimplifyError] = useState(null);
+    const [generatingBoilerplate, setGeneratingBoilerplate] = useState(false);
+    const [boilerplateError, setBoilerplateError] = useState(null);
+    const [analyzingComplexity, setAnalyzingComplexity] = useState(false);
+    const [complexityAnalysis, setComplexityAnalysis] = useState(null);
+    const [complexityError, setComplexityError] = useState(null);
 
     useEffect(() => {
         setPage(1);
@@ -185,6 +196,8 @@ int main() {
                 }
                 const data = await response.json();
                 setProblem(data);
+                setSimplifiedProblem(null);
+                setComplexityAnalysis(null);
                 setCode(starterCodeMap[selectedLanguage] || '// Write your code here');
                 if (data.sampleTestCases && data.sampleTestCases.length > 0) {
                     setCustomInput(data.sampleTestCases[0].input);
@@ -208,6 +221,7 @@ int main() {
         setOutput('Running code...');
         setShowOutput(true);
         setIsSubmitResult(false);
+        setComplexityAnalysis(null);
 
         try {
             const response = await fetch(`${API_BASE_URL}/submission/run`, {
@@ -215,11 +229,11 @@ int main() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
-                    code, 
-                    language: selectedLanguage, 
-                    customInput, 
-                    problemId: id 
+                body: JSON.stringify({
+                    code,
+                    language: selectedLanguage,
+                    customInput,
+                    problemId: id
                 }),
             });
 
@@ -248,6 +262,7 @@ int main() {
         setShowOutput(true);
         setIsSubmitResult(true);
         setOutput('Submitting solution...');
+        setComplexityAnalysis(null);
 
         try {
             const response = await fetch(`${API_BASE_URL}/submission/submit`, {
@@ -295,6 +310,125 @@ int main() {
             setIsSubmitting(false);
         }
     };
+
+    const handleSimplifyProblem = async () => {
+        if (!problem || !problem.description) {
+            setSimplifyError('No problem description available to simplify.');
+            return;
+        }
+
+        setSimplifyingProblem(true);
+        setSimplifiedProblem(null);
+        setSimplifyError(null);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/simplify-problem`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ problemStatement: problem.description }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to simplify problem.');
+            }
+
+            const data = await response.json();
+            setSimplifiedProblem(data.simplifiedProblem);
+        } catch (err) {
+            setSimplifyError(`Error simplifying problem: ${err.message}`);
+            console.error('Simplify Problem Error:', err);
+        } finally {
+            setSimplifyingProblem(false);
+        }
+    };
+
+    const handleGenerateBoilerplate = async () => {
+        if (!problem || !problem.description) {
+            setBoilerplateError('No problem description available to generate boilerplate.');
+            return;
+        }
+
+        setGeneratingBoilerplate(true);
+        setBoilerplateError(null);
+        setComplexityAnalysis(null);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/generate-boilerplate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    problemStatement: problem.description,
+                    language: selectedLanguage,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to generate boilerplate.');
+            }
+
+            const data = await response.json();
+            setCode(data.boilerplateCode);
+            alert(`Boilerplate for ${selectedLanguage.toUpperCase()} generated and loaded into editor!`);
+        } catch (err) {
+            setBoilerplateError(`Error generating boilerplate: ${err.message}`);
+            console.error('Generate Boilerplate Error:', err);
+        } finally {
+            setGeneratingBoilerplate(false);
+        }
+    };
+
+    const handleAnalyzeComplexity = async () => {
+        if (!code) {
+            setComplexityError('No code in the editor to analyze.');
+            return;
+        }
+
+        setAnalyzingComplexity(true);
+        setComplexityAnalysis(null);
+        setComplexityError(null);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/analyze-time-complexity`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: code,
+                    language: selectedLanguage
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to analyze time complexity.');
+            }
+
+            const data = await response.json();
+            setComplexityAnalysis(data.complexityAnalysis);
+        } catch (err) {
+            setComplexityError(`Error analyzing complexity: ${err.message}`);
+            console.error('Analyze Complexity Error:', err);
+        } finally {
+            setAnalyzingComplexity(false);
+        }
+    };
+
+    const LoadingSpinner = ({ message = "Loading..." }) => (
+        <div className="flex items-center justify-center py-4 text-gray-500 dark:text-gray-400">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>{message}</span>
+        </div>
+    );
 
     if (loading) {
         return (
@@ -349,21 +483,69 @@ int main() {
                         transition: isDragging ? 'none' : 'width 0.2s'
                     }}
                 >
-                    {/* Tabs */}
-                    <nav className="flex space-x-4 mb-6">
-                        <button
-                            onClick={() => setActiveTab('Problem')}
-                            className={`px-4 py-2 rounded ${activeTab === 'Problem' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
-                        >
-                            Problem
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('My Submissions')}
-                            className={`px-4 py-2 rounded ${activeTab === 'My Submissions' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
-                        >
-                            My Submissions
-                        </button>
-                    </nav>
+                    {/* Tabs and Simplify Button Container */}
+                    <div className="flex justify-between items-center mb-6"> {/* Added flex, justify-between, items-center */}
+                        {/* Tabs */}
+                        <nav className="flex space-x-4"> {/* Removed mb-6 from here */}
+                            <button
+                                onClick={() => setActiveTab('Problem')}
+                                className={`px-4 py-2 rounded ${activeTab === 'Problem' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
+                            >
+                                Problem
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('My Submissions')}
+                                className={`px-4 py-2 rounded ${activeTab === 'My Submissions' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
+                            >
+                                My Submissions
+                            </button>
+                        </nav>
+
+                        {/*Problem Simplifier Button*/}
+                        <div className="flex items-center relative group">
+                            {simplifyError && <p className="text-red-500 text-sm mr-2">{simplifyError}</p>}
+                            <button
+                                onClick={handleSimplifyProblem}
+                                disabled={simplifyingProblem}
+                                className={`
+                                    relative
+                                    h-8 w-8 p-0 rounded-lg shadow-md 
+                                    font-bold text-white
+                                    transition-[width] duration-300 ease-in-out
+                                    overflow-hidden 
+                                    bg-gradient-to-br from-purple-500 to-indigo-600
+                                    hover:from-purple-600 hover:to-indigo-700
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    transform hover:scale-105 
+                                    flex items-center 
+                                    justify-center 
+                                    ${simplifyingProblem ? 'animate-pulse' : 'group-hover:w-40'} 
+                                `}
+                            >
+                                {/* Shine effect */}
+                                <span className="
+                                    absolute top-0 left-0 w-full h-full
+                                    block bg-gradient-to-r from-transparent via-white to-transparent
+                                    opacity-20 transform -skew-x-12 -translate-x-full
+                                    group-hover:animate-shine
+                                    pointer-events-none
+                                " style={{ filter: 'blur(20px)' }}></span>
+                                <FaLightbulb className="flex-shrink-0 text-lg absolute left-1/2 -translate-x-1/2 group-hover:left-2 group-hover:translate-x-0 transition-all duration-300" />
+
+                                <span className="
+                                    absolute
+                                    flex-grow text-sm whitespace-nowrap overflow-hidden text-left
+                                    opacity-0 group-hover:opacity-100 
+                                    group-hover:left-8
+                                    transition-all duration-300 
+                                    pointer-events-none 
+                                ">
+                                    {simplifyingProblem ? 'Simplifying...' : 'Simplify Problem'}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
                     {activeTab === 'Problem' ? (
                         <>
                             {/* Problem Header/Title */}
@@ -378,6 +560,21 @@ int main() {
 
                             {/* Problem Description, Formats, Constraints, Sample Test Cases, Tags */}
                             <div className="flex-grow pr-2">
+                                {simplifyingProblem ? (
+                                    <div className="mb-6 bg-gray-100 dark:bg-gray-700 p-4 rounded-md border border-gray-200 dark:border-gray-600">
+                                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Simplified Problem Summary:</h3>
+                                        <LoadingSpinner message="Generating simplified problem..." />
+                                    </div>
+                                ) : simplifiedProblem ? (
+                                    <div className="mb-6 bg-gray-100 dark:bg-gray-700 p-4 rounded-md border border-gray-200 dark:border-gray-600">
+                                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Simplified Problem Summary:</h3>
+                                        <div className="text-gray-800 dark:text-gray-200 leading-relaxed prose dark:prose-invert max-w-none">
+                                            <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                                                {simplifiedProblem}
+                                            </ReactMarkdown>
+                                        </div>
+                                    </div>
+                                ) : null}
                                 <p className="text-gray-800 dark:text-gray-200 mb-6 leading-relaxed whitespace-pre-wrap">
                                     {problem.description}
                                 </p>
@@ -434,7 +631,7 @@ int main() {
                                         </div>
                                     ))}
                                     {showSnackbar && (
-                                        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-300 z-50">
+                                        <div className="fixed bottom-4 right-4 bg-slate-700 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-300 z-50">
                                             Copied to clipboard!
                                         </div>
                                     )}
@@ -595,19 +792,86 @@ int main() {
                     }}
                 >
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Code Editor</h2>
-                        {/* Language Dropdown */}
-                        <select
-                            value={selectedLanguage}
-                            onChange={(e) => setSelectedLanguage(e.target.value)}
-                            className="p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                            {languagesOptions.map((lang) => (
-                                <option key={lang.value} value={lang.value}>
-                                    {lang.label}
-                                </option>
-                            ))}
-                        </select>
+                        <h2 className="text-xl font-bold text-blue-600 dark:text-blue-400">Code Editor</h2>
+                        <div className="flex items-center space-x-4">
+                            {/* Analyze Complexity Button */}
+                            {complexityError && <p className="text-red-500 text-sm mr-2">{complexityError}</p>}
+                            <button
+                                onClick={handleAnalyzeComplexity}
+                                disabled={analyzingComplexity || !code} // Disable if no code in editor
+                                className={`
+                                    relative
+                                    p-1 px-3 rounded-lg shadow-md
+                                    font-semibold text-white text-sm
+                                    transition-all duration-300 ease-in-out
+                                    overflow-hidden
+                                    bg-gradient-to-br from-cyan-500 to-blue-800
+                                    hover:from-cyan-600 hover:to-blue-900
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    transform hover:scale-105
+                                    flex items-center justify-center
+                                    group
+                                    ${analyzingComplexity ? 'animate-pulse' : ''}
+                                `}
+
+                            >
+                                <span className="
+                                    absolute top-0 left-0 w-full h-full
+                                    block bg-gradient-to-r from-transparent via-white to-transparent
+                                    opacity-20 transform -skew-x-12 -translate-x-full
+                                    group-hover:animate-shine
+                                    pointer-events-none
+                                " style={{ filter: 'blur(20px)' }}></span>
+                                <FaHourglassHalf className="text-md pr-1" />
+                                {analyzingComplexity ? 'Analyzing...' : 'Analyze TC'}
+                            </button>
+
+                            {/* Boilerplate Generator Button */}
+                            {boilerplateError && <p className="text-red-500 text-sm mr-2">{boilerplateError}</p>}
+                            <button
+                                onClick={handleGenerateBoilerplate}
+                                disabled={generatingBoilerplate || !problem}
+                                className={`
+                                    relative
+                                    p-1 px-3 rounded-lg shadow-md
+                                    font-semibold text-white text-sm
+                                    transition-all duration-300 ease-in-out
+                                    overflow-hidden
+                                    bg-gradient-to-br from-green-400 to-emerald-800
+                                    hover:from-green-500 hover:to-emerald-900
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    transform hover:scale-105
+                                    flex items-center justify-center
+                                    group
+                                    mr-2
+                                    ${generatingBoilerplate ? 'animate-pulse' : ''}
+                                `}
+                            >
+                                {/* Shine effect */}
+                                <span className="
+                                    absolute top-0 left-0 w-full h-full
+                                    block bg-gradient-to-r from-transparent via-white to-transparent
+                                    opacity-20 transform -skew-x-12 -translate-x-full
+                                    group-hover:animate-shine
+                                    pointer-events-none
+                                " style={{ filter: 'blur(20px)' }}></span>
+                                <FaCode className="text-xl pr-1" />
+                                {generatingBoilerplate ? 'Generating...' : 'Generate Boilerplate'}
+                            </button>
+
+                            {/* Language Dropdown */}
+                            <select
+                                value={selectedLanguage}
+                                onChange={(e) => setSelectedLanguage(e.target.value)}
+                                className="p-1 py-0 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                {languagesOptions.map((lang) => (
+                                    <option key={lang.value} value={lang.value}>
+                                        {lang.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     {/* Code Editor */}
@@ -628,6 +892,24 @@ int main() {
                             className="code-editor-container"
                         />
                     </div>
+
+                    {/* Time Complexity Analysis Block*/}
+                    {(analyzingComplexity || complexityAnalysis || complexityError) && ( 
+                        <div className="mt-6 bg-gray-100 dark:bg-gray-700 p-4 rounded-md border border-gray-200 dark:border-gray-600">
+                            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Time Complexity Analysis:</h3>
+                            {analyzingComplexity ? (
+                                <LoadingSpinner message="Analyzing time complexity..." />
+                            ) : complexityError ? ( 
+                                <p className="text-red-500">{complexityError}</p>
+                            ) : (
+                                <div className="text-gray-800 dark:text-gray-200 leading-relaxed prose dark:prose-invert max-w-none">
+                                    <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                                        {complexityAnalysis}
+                                    </ReactMarkdown>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Custom Input */}
                     <div className="mt-6">
