@@ -317,6 +317,7 @@ int main() {
             return;
         }
 
+        setActiveTab('Problem');
         setSimplifyingProblem(true);
         setSimplifiedProblem(null);
         setSimplifyError(null);
