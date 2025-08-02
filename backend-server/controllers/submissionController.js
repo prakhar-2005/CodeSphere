@@ -78,7 +78,6 @@ const submitCode = async (req, res) => {
       message: 'Submission judged successfully.',
       verdict,
       failedCaseIndex,
-      testResults,
     });
   } catch (error) {
     console.error('Error during code submission judging:', error.message);
