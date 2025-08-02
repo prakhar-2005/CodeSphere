@@ -696,8 +696,15 @@ int main() {
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="p-2 border-b">
-                                                        {new Date(submission.submittedAt).toLocaleString()}
+                                                    <td className="p-3">
+                                                        {new Date(submission.submittedAt).toLocaleString('en-GB', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                            hour12: false,
+                                                        })}
                                                     </td>
                                                     <td className="p-2 border-b">
                                                         <button

@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import {Link} from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({theme, toggleTheme}) => {
     const { isAuthenticated, currentUser, logout, loadingAuth } = useAuth(); 
     const [showNavbar, setShowNavbar] = useState(true);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
     const lastScrollY = useRef(0); 
     const ticking = useRef(false); // to prevent multiple calls to requestAnimationFrame
+    const navigate = useNavigate();
+    const profileMenuRef = useRef(null); // outside click detection
 
     const handleScroll = () => {
         if (!ticking.current) {
@@ -37,11 +40,25 @@ const Navbar = ({theme, toggleTheme}) => {
 
     const handleLogout = async () => {
         logout(); 
+        setShowProfileMenu(false);
     };
 
-    if (loadingAuth) {
-        return null; 
+    const handleViewProfile = () => {
+        navigate('/profile');
+        setShowProfileMenu(false);
     }
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+                setShowProfileMenu(false);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
+
+    if (loadingAuth) return null; 
 
     return (
         <nav className={`fixed top-0 left-0 right-0 pt-4 pb-4 px-8 flex justify-between items-center z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md
@@ -72,19 +89,33 @@ const Navbar = ({theme, toggleTheme}) => {
                 {!isAuthenticated ? (
                     <Link to="/login" className="px-5 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition duration-300">Login</Link>
                 ) : (
-                    <>
-                        {currentUser && ( 
-                            <span className="px-5 py-2.5 text-gray-300 font-medium">
-                                Hello, {currentUser.username}!
-                            </span>
-                        )}
+                    <div className="relative" ref={profileMenuRef}>
+                        {/* Profile Icon */}
                         <button
-                            onClick={handleLogout}
-                            className="px-5 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition duration-300"
+                            onClick={() => setShowProfileMenu(!showProfileMenu)}
+                            className="rounded-full bg-gray-700 w-10 h-10 flex items-center justify-center hover:bg-gray-600 transition"
                         >
-                            Logout
+                            <i className="fas fa-user text-white"></i>
                         </button>
-                    </>
+
+                        {/* Dropdown Menu */}
+                        {showProfileMenu && (
+                            <div className="absolute right-0 mt-2 w-40 bg-gray-800 dark:bg-gray-800 rounded-lg shadow-lg border border-gray-700 dark:border-gray-700">
+                                <button
+                                    onClick={handleViewProfile}
+                                    className="block w-full text-left px-4 py-2 text-gray-200 dark:text-gray-200 hover:bg-gray-700 dark:hover:bg-gray-700"
+                                >
+                                    View Profile
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-700 dark:hover:bg-gray-700"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
         </nav>

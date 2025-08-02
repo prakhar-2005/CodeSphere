@@ -32,9 +32,6 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'], // enum instead of bool for more flexibility
     default: 'user' // password is not returned in queries by default
   },
-  // to be added later
-  // solvedProblems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
-  // submissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Submission' }]
 }, {
   timestamps: true 
 });

@@ -10,6 +10,7 @@ import SignupPage from './components/SignupPage'
 import ProblemDetailPage from './components/ProblemDetailPage'
 import AddProblemPage from './components/AddProblemPage'
 import EditProblemPage from './components/EditProblemPage'
+import ProfilePage from './components/ProfilePage'
 
 function App() {
   const [theme, setTheme] = useState('dark');
@@ -46,6 +47,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage/>} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/problems" element={<Problems />} />
           <Route path="/problems/:id" element={<ProblemDetailPage/>} />
           <Route path="/admin/add-problem" element={<AddProblemPage />} />
