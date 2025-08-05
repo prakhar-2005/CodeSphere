@@ -32,7 +32,7 @@ Simplified Explanation:`;
 };
 
 const generateBoilerplate = async (req, res) => {
-    const { problemStatement, language } = req.body;
+    const { problemStatement, inputFormat, outputFormat, language } = req.body;
 
     if (!problemStatement || !language) {
         return res.status(400).json({ message: "Problem statement and language are required." });
@@ -43,11 +43,21 @@ const generateBoilerplate = async (req, res) => {
         Include necessary imports/headers, the main function/method, and basic I/O setup if typical for the language. 
         Do NOT include any problem-solving logic, just the structural boilerplate. 
         Ensure the code is correctly formatted and ready to be filled in by the user.
-        
+        Please keep the boilerplate concise and relevant to the problem statement.
+        Also use minimal comment lines, focusing on the structure rather than explanations.
+        For any language, use libraries that are standard for competitive programming.
+        For example, if language is C++, use "#include <bits/stdc++.h>" and "using namespace std;" always.
+
         IMPORTANT: Only return the code itself. Do NOT wrap the code in markdown fences (e.g., \`\`\`python) or any other conversational text.
 
 Problem Statement:
 ${problemStatement}
+
+Input Format:
+${inputFormat}
+
+Output Format:
+${outputFormat}
 
 Language: ${language}`;
 

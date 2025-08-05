@@ -364,6 +364,8 @@ int main() {
                 },
                 body: JSON.stringify({
                     problemStatement: problem.description,
+                    inputFormat: problem.inputFormat,
+                    outputFormat: problem.outputFormat,
                     language: selectedLanguage,
                 }),
             });
