@@ -65,7 +65,7 @@ Language: ${language}`;
             model: "gemini-2.5-pro",
             contents: prompt,
         });
-        const response = result.text;
+        const response = result.text.replace(/```[\s\S]*?\n|```/g, "").trim();
         res.json({ boilerplateCode: response });
     } catch (error) {
         console.error("Error generating boilerplate with Gemini API:", error);
