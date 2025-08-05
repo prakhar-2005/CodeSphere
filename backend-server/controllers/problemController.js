@@ -2,8 +2,40 @@ const Problem = require("../models/Problem");
 const mongoose = require('mongoose');
 
 const getProblems = async (req, res) => {
+    // try {
+    //     const problems = await Problem.find({});
+    //     res.status(200).json(problems);
+    // } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({ message: 'Server Error' });
+    // }
+
     try {
-        const problems = await Problem.find({});
+        const { tags, difficulty, sort } = req.query;
+
+        const query = {};
+
+        // Filter by tags (if provided)
+        if (tags) {
+            const tagsArray = tags.split(',').map(tag => tag.trim());
+            query.tags = { $in: tagsArray };
+        }
+
+        // Filter by difficulty (if provided and not "All")
+        if (difficulty && difficulty !== 'All') {
+            query.difficulty = difficulty;
+        }
+
+        let problemsQuery = Problem.find(query);
+
+        // Sorting (rating)
+        if (sort === 'rating-asc') {
+            problemsQuery = problemsQuery.sort({ rating: 1 });
+        } else if (sort === 'rating-desc') {
+            problemsQuery = problemsQuery.sort({ rating: -1 });
+        }
+
+        const problems = await problemsQuery;
         res.status(200).json(problems);
     } catch (error) {
         console.error(error);
@@ -27,6 +59,16 @@ const getProblemById = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+const getAllTags = async (req, res) => {
+    try {
+        const tags = await Problem.distinct("tags");
+        res.status(200).json(tags);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error while fetching tags' });
     }
 };
 
@@ -120,4 +162,5 @@ module.exports = {
     getProblemById,
     deleteProblem,
     updateProblem,
+    getAllTags,
 };
