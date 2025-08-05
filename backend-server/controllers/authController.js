@@ -59,23 +59,29 @@ const loginUser = async (req, res) => {
 
   try {
     const user = await User.findOne({ email }).select('+password'); // Explicitly select password
-
-    if (user && (await user.matchPassword(password))) {
-      generateToken(res, user._id); // Generate JWT and send cookie
-
-      res.status(200).json({
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        message: 'Logged in successfully',
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid credentials' }); 
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
+    const isPasswordMatch = await user.matchPassword(password);
+    if (!isPasswordMatch) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    generateToken(res, user._id); // Generate JWT and send cookie
+
+    res.status(200).json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      message: 'Logged in successfully',
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: getMongooseErrorMessage(error) });
+    res.status(500).json({
+      message: 'An unexpected error occurred during login. Please try again later.',
+      details: process.env.NODE_ENV === 'development' ? getMongooseErrorMessage(error) : undefined,
+    });
   }
 };
 
