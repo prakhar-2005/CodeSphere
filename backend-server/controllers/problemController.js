@@ -2,33 +2,22 @@ const Problem = require("../models/Problem");
 const mongoose = require('mongoose');
 
 const getProblems = async (req, res) => {
-    // try {
-    //     const problems = await Problem.find({});
-    //     res.status(200).json(problems);
-    // } catch (error) {
-    //     console.error(error);
-    //     res.status(500).json({ message: 'Server Error' });
-    // }
-
     try {
         const { tags, difficulty, sort } = req.query;
 
         const query = {};
 
-        // Filter by tags (if provided)
         if (tags) {
             const tagsArray = tags.split(',').map(tag => tag.trim());
             query.tags = { $in: tagsArray };
         }
 
-        // Filter by difficulty (if provided and not "All")
         if (difficulty && difficulty !== 'All') {
             query.difficulty = difficulty;
         }
 
         let problemsQuery = Problem.find(query);
 
-        // Sorting (rating)
         if (sort === 'rating-asc') {
             problemsQuery = problemsQuery.sort({ rating: 1 });
         } else if (sort === 'rating-desc') {
