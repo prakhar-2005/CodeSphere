@@ -2,83 +2,132 @@ import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
-import { format } from 'date-fns';
+import ProfilePicture from './ProfilePicture';
 
 const ProfilePage = () => {
     const { currentUser } = useAuth();
-    const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
+
+    const [userInfo, setUserInfo] = useState(null);
+    const [activity, setActivity] = useState([]);
+    const [submissions, setSubmissions] = useState([]);
+    const [loadingUser, setLoadingUser] = useState(true);
+    const [loadingActivity, setLoadingActivity] = useState(true);
+    const [loadingSubmissions, setLoadingSubmissions] = useState(true);
+
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const fetchProfile = async (pageNumber = 1) => {
+    const BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
+
+    const fetchUserInfo = async () => {
         try {
-            const res = await fetch(
-                `${import.meta.env.VITE_BACKEND_BASE_URL}/users/profile?page=${pageNumber}&limit=10`,
-                { credentials: 'include' }
-            );
+            const res = await fetch(`${BASE_URL}/users/profile/info`, { credentials: 'include' });
+            const data = await res.json();
+            if (res.ok) setUserInfo(data);
+        } catch (err) {
+            console.error('Error fetching user info:', err);
+        } finally {
+            setLoadingUser(false);
+        }
+    };
+
+    const fetchActivity = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/users/profile/activity`, { credentials: 'include' });
+            const data = await res.json();
+            if (res.ok) setActivity(data);
+        } catch (err) {
+            console.error('Error fetching activity:', err);
+        } finally {
+            setLoadingActivity(false);
+        }
+    };
+
+    const fetchSubmissions = async (pageNumber = 1) => {
+        try {
+            const res = await fetch(`${BASE_URL}/users/profile/submissions?page=${pageNumber}&limit=10`, { credentials: 'include' });
             const data = await res.json();
             if (res.ok) {
-                setProfile(data);
+                setSubmissions(data.submissions);
                 setTotalPages(data.totalPages);
-            } else {
-                console.error(data.message);
             }
         } catch (err) {
-            console.error('Error fetching profile:', err);
+            console.error('Error fetching submissions:', err);
         } finally {
-            setLoading(false);
+            setLoadingSubmissions(false);
+        }
+    };
+
+    const handleUploadProfilePic = async (file) => {
+        const formData = new FormData();
+        formData.append('profilePic', file);
+
+        try {
+            const res = await fetch(`${BASE_URL}/users/upload-profile-pic`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'include',
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                setUserInfo((prev) => ({
+                    ...prev,
+                    profilePic: data.profilePic,
+                }));
+            } else {
+                alert('Failed to upload profile picture');
+            }
+        } catch (err) {
+            console.error('Error uploading profile pic:', err);
         }
     };
 
     useEffect(() => {
-        fetchProfile(page);
+        fetchUserInfo();
+        fetchActivity();
+        fetchSubmissions(page);
     }, [page]);
 
-    if (loading) {
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+    };
+
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1);
+
+    if (loadingUser) {
         return (
-            <div className="flex justify-center items-center min-h-screen text-xl text-gray-500 dark:text-gray-400">
+            <div className="flex justify-center items-center min-h-screen text-xl bg-gradient-to-br from-white to-gray-100 dark:from-gray-900 dark:to-black text-gray-900 dark:text-white">
                 Loading profile...
             </div>
         );
     }
 
-    if (!profile) {
+    if (!userInfo) {
         return (
-            <div className="flex justify-center items-center min-h-screen text-xl text-red-500">
+            <div className="flex justify-center items-center min-h-screen text-xl bg-gradient-to-br from-white to-gray-100 dark:from-gray-900 dark:to-black text-red-500">
                 Failed to load profile.
             </div>
         );
     }
 
-    const { user, submissions, activity } = profile;
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    };
-
-    const startDate = new Date();
-    startDate.setFullYear(startDate.getFullYear() - 1); // 1 year heatmap
-
     return (
         <div className="min-h-screen pt-[6rem] px-6 bg-gradient-to-br from-white to-gray-100 dark:from-gray-900 dark:to-black text-gray-900 dark:text-white">
             <div className="max-w-6xl mx-auto">
-                {/* User Info Card */}
+                {/* User Info */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-gray-200 dark:border-gray-700">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">{user.username}</h1>
-                            <p className="text-gray-600 dark:text-gray-400">📧 {user.email}</p>
-                            <p className="text-gray-500 dark:text-gray-500 text-sm">
-                                Joined on {formatDate(user.createdAt)}
+                            <h1 className="text-3xl font-bold mb-2">{userInfo.username}</h1>
+                            <p className="text-gray-600 dark:text-gray-400">📧 {userInfo.email}</p>
+                            <p className="text-gray-500 text-sm">
+                                Joined on {formatDate(userInfo.createdAt)}
                             </p>
                         </div>
-                        <div className="bg-blue-500 text-white w-16 h-16 flex items-center justify-center rounded-full text-2xl font-bold">
-                            {user.username[0].toUpperCase()}
+                        <div className="flex flex-col items-center">
+                            <ProfilePicture userInfo={userInfo} onUpload={handleUploadProfilePic} />
                         </div>
                     </div>
                 </div>
@@ -86,29 +135,34 @@ const ProfilePage = () => {
                 {/* Activity Heatmap */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-gray-200 dark:border-gray-700">
                     <h2 className="text-2xl font-semibold mb-4 text-blue-500">Activity Heatmap</h2>
-                    <CalendarHeatmap
-                        startDate={startDate}
-                        endDate={new Date()}
-                        values={activity}
-                        classForValue={(value) => {
-                            if (!value || value.count === 0) return 'color-empty';
-                            if (value.count < 2) return 'color-scale-1';
-                            if (value.count < 4) return 'color-scale-2';
-                            if (value.count < 6) return 'color-scale-3';
-                            return 'color-scale-4';
-                        }}
-                        tooltipDataAttrs={(value) => {
-                            if (!value || !value.date) return {};
-                            return { 'data-tip': `${value.date}: ${value.count} submissions` };
-                        }}
-                        showWeekdayLabels
-                    />
+                    {loadingActivity ? (
+                        <p>Loading activity...</p>
+                    ) : (
+                        <CalendarHeatmap
+                            startDate={startDate}
+                            endDate={new Date()}
+                            values={activity}
+                            classForValue={(value) => {
+                                if (!value || value.count === 0) return 'color-empty';
+                                if (value.count < 2) return 'color-scale-1';
+                                if (value.count < 4) return 'color-scale-2';
+                                if (value.count < 6) return 'color-scale-3';
+                                return 'color-scale-4';
+                            }}
+                            tooltipDataAttrs={(value) =>
+                                value?.date ? { 'data-tip': `${value.date}: ${value.count} submissions` } : {}
+                            }
+                            showWeekdayLabels
+                        />
+                    )}
                 </div>
 
-                {/* Recent Submissions with Pagination */}
+                {/* Submissions */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <h2 className="text-2xl font-semibold mb-4 text-blue-500">Recent Submissions</h2>
-                    {submissions.length > 0 ? (
+                    {loadingSubmissions ? (
+                        <p>Loading submissions...</p>
+                    ) : submissions.length > 0 ? (
                         <>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
@@ -122,20 +176,15 @@ const ProfilePage = () => {
                                     </thead>
                                     <tbody>
                                         {submissions.map((s) => (
-                                            <tr
-                                                key={s._id}
-                                                className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition"
-                                            >
+                                            <tr key={s._id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
                                                 <td className="p-3">{s.problemId?.name || 'Unknown'}</td>
                                                 <td className="p-3">{s.language}</td>
-                                                <td
-                                                    className={`p-3 font-semibold ${s.status === 'Accepted'
-                                                            ? 'text-green-500'
-                                                            : s.status === 'Wrong Answer'
-                                                                ? 'text-red-500'
-                                                                : 'text-yellow-500'
-                                                        }`}
-                                                >
+                                                <td className={`p-3 font-semibold ${s.status === 'Accepted'
+                                                    ? 'text-green-500'
+                                                    : s.status === 'Wrong Answer'
+                                                        ? 'text-red-500'
+                                                        : 'text-yellow-500'
+                                                    }`}>
                                                     {s.status}
                                                 </td>
                                                 <td className="p-3">
@@ -153,8 +202,6 @@ const ProfilePage = () => {
                                     </tbody>
                                 </table>
                             </div>
-
-                            {/* Pagination Controls */}
                             <div className="flex justify-center items-center mt-4 space-x-2">
                                 <button
                                     disabled={page === 1}

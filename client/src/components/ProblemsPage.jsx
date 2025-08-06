@@ -37,7 +37,6 @@ const ProblemsPage = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/problems/tags`);
       const data = await response.json();
-      console.log("Fetched tags:", data); // 
       setAllTags(data);
     } catch (err) {
       console.error("Error fetching tags:", err);
