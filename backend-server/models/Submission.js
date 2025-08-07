@@ -11,11 +11,6 @@ const submissionSchema = new mongoose.Schema({
     ref: "Problem",
     required: true,
   },
-  contestId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Contest",
-    default: null,
-  },
   language: {
     type: String,
     required: true,
@@ -48,7 +43,12 @@ const submissionSchema = new mongoose.Schema({
   failedCaseIndex: {
     type: Number,
     default: null,
-  }
+  },
+  contest: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contest',
+    default: null,
+  },
 });
 
 const Submission = mongoose.model("Submission", submissionSchema);

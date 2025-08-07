@@ -37,7 +37,7 @@ const runCode = async (req, res) => {
 };
 
 const submitCode = async (req, res) => {
-  const { problemId, code, language } = req.body;
+  const { problemId, code, language, contestId } = req.body;
   const userId = req.user._id;
 
   if (!problemId || !code || !language) {
@@ -50,6 +50,37 @@ const submitCode = async (req, res) => {
   try {
     const problem = await Problem.findById(problemId);
     if (!problem) return res.status(404).json({ message: 'Problem not found.' });
+
+    let contest = null;
+    if (contestId) {
+      if (!mongoose.Types.ObjectId.isValid(contestId)) {
+        return res.status(400).json({ message: 'Invalid contest ID format.' });
+      }
+
+      contest = await Contest.findById(contestId);
+      if (!contest) return res.status(404).json({ message: 'Contest not found.' });
+
+      const now = new Date();
+      if (now < new Date(contest.startTime)) {
+        return res.status(403).json({ message: 'Contest has not started yet.' });
+      }
+      if (now > new Date(contest.endTime)) {
+        return res.status(403).json({ message: 'Contest has already ended.' });
+      }
+
+      // Optional: check that this problem is part of the contest
+      const isInContest = contest.problems.some(pId => pId.toString() === problemId);
+      if (!isInContest) {
+        return res.status(400).json({ message: 'This problem is not part of the contest.' });
+      }
+
+      // Optional: check user is registered
+      const isRegistered = contest.participants.includes(userId);
+      if (!isRegistered) {
+        return res.status(403).json({ message: 'You are not registered for this contest.' });
+      }
+    }
+
     const { testCases, timeLimit, memoryLimit } = problem;
 
     const response = await axios.post(`${process.env.COMPILER_BASE_URL}/judge`, {
@@ -65,13 +96,13 @@ const submitCode = async (req, res) => {
     await Submission.create({
       userId,
       problemId,
-      contestId: req.body.contestId || null,
       language,
       code,
       status: verdict,
       isContestSubmission: !!req.body.contestId,
       failedCaseIndex,
       testResults,
+      contest: contestId || null,
     });
 
     res.status(200).json({
