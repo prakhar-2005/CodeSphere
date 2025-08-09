@@ -31,18 +31,21 @@ const ProblemSchema = mongoose.Schema({
         },
         },
     ],
-    testCases: [ 
-      {
-        input: {
-          type: String,
-          required: true,
+    testCases: {
+      type: [ 
+        {
+          input: {
+            type: String,
+            required: true,
+          },
+          output: {
+            type: String,
+            required: true,
+          },
         },
-        output: {
-          type: String,
-          required: true,
-        },
-      },
-    ],
+      ],
+      select: false, 
+    },
     timeLimit: {
       type: Number,
       required: [true, 'Please add a time limit in milliseconds'],
