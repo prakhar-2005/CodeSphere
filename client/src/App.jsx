@@ -12,6 +12,7 @@ import AddProblemPage from './components/AddProblemPage'
 import EditProblemPage from './components/EditProblemPage'
 import ProfilePage from './components/ProfilePage'
 import ContestListPage from './components/ContestListPage'
+import ContestDetailPage from './components/ContestDetailPage'
 
 function App() {
   const [theme, setTheme] = useState('dark');
@@ -50,6 +51,7 @@ function App() {
           <Route path="/signup" element={<SignupPage/>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/contests" element={<ContestListPage />} />
+          <Route path="/contest/:id" element={<ContestDetailPage />} />
           <Route path="/problems" element={<Problems />} />
           <Route path="/problems/:id" element={<ProblemDetailPage/>} />
           <Route path="/admin/add-problem" element={<AddProblemPage />} />

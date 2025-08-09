@@ -6,3 +6,18 @@
 .color-scale-2 { fill: #7bc96f; }
 .color-scale-3 { fill: #239a3b; }
 .color-scale-4 { fill: #196127; }
+
+@keyframes snackbar-in {
+  from {
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-snackbar-in {
+  animation: snackbar-in 0.5s ease-out forwards;
+}

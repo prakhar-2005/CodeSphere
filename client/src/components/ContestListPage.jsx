@@ -1,114 +1,223 @@
-import { useEffect, useState } from 'react';
-import { formatDistanceToNow, format } from 'date-fns';
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const ContestListPage = () => {
-  const [contests, setContests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('upcoming');
+    const [contests, setContests] = useState({ upcoming: [], ongoing: [], past: [] });
+    const [activeTab, setActiveTab] = useState("upcoming");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [showSnackbar, setShowSnackbar] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  useEffect(() => {
-    const fetchContests = async () => {
-      try {
-        const res = await fetch('/api/contests');
-        const data = await res.json();
-        setContests(data);
-      } catch (err) {
-        console.error('Error fetching contests:', err);
-      } finally {
-        setLoading(false);
-      }
+    const { currentUser, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
+
+    const fetchAndSetContests = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${API_BASE_URL}/contests`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            const sortedContests = {
+                upcoming: data.upcoming.sort((a, b) => new Date(a.startTime) - new Date(b.startTime)),
+                ongoing: data.ongoing.sort((a, b) => new Date(a.startTime) - new Date(b.startTime)),
+                past: data.past.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+            };
+
+            setContests(sortedContests);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
-    fetchContests();
-  }, []);
 
-  const now = new Date();
-  const upcoming = contests.filter(c => new Date(c.startTime) > now);
-  const past = contests.filter(c => new Date(c.endTime) < now);
+    useEffect(() => {
+        fetchAndSetContests();
+    }, []);
 
-  const renderContestCard = (contest) => {
-    const start = new Date(contest.startTime);
-    const end = new Date(contest.endTime);
-    const isUpcoming = start > now;
-    const isPast = end < now;
+    const handleRegister = async (contestId) => {
+        if (!isAuthenticated) {
+            navigate("/login");
+            return;
+        }
+        const isConfirmed = window.confirm(
+            `Are you sure you want to participate in this contest?`
+        );
+        if (!isConfirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/contests/register/${contestId}`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" }
+            });
+
+            if (response.ok) {
+                setSnackbarMessage(`Successfully registered 🎉`);
+                setShowSnackbar(true);
+                setTimeout(() => setShowSnackbar(false), 3000); 
+                await fetchAndSetContests();
+            } else {
+                const errorData = await response.json();
+                setSnackbarMessage(`${errorData}`);
+                setShowSnackbar(true);
+                setTimeout(() => setShowSnackbar(false), 3000); 
+            }
+        } catch (error) {
+            setSnackbarMessage("Error registering for contest");
+            setShowSnackbar(true);
+            setTimeout(() => setShowSnackbar(false), 3000); 
+        }
+    };
+
+    const filteredContests = contests[activeTab] || [];
+
+    const isUserRegistered = (contest) =>
+        isAuthenticated && contest.registeredUsers?.includes(currentUser?._id);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col min-h-screen p-8 pt-24 bg-gradient-to-br from-white to-gray-100 text-gray-900 dark:from-gray-900 dark:to-black dark:text-white items-center justify-center">
+                <p className="text-xl dark:text-white">Loading contests...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col min-h-screen p-8 pt-24 bg-gradient-to-br from-white to-gray-100 text-gray-900 dark:from-gray-900 dark:to-black dark:text-white items-center justify-center">
+                <p className="text-xl text-red-500">Error: {error}</p>
+                <p className="text-md text-gray-400">Please ensure the backend server is running.</p>
+            </div>
+        );
+    }
 
     return (
-      <div
-        key={contest._id}
-        className="bg-white dark:bg-gray-800 rounded-lg p-4 w-full max-w-3xl mx-auto shadow-md mb-6 border border-gray-300 dark:border-gray-700"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-blue-700 dark:text-blue-300">{contest.title}</h2>
-          <span
-            className={`text-sm font-semibold ${
-              isUpcoming ? 'text-green-600' : isPast ? 'text-gray-400' : 'text-blue-500'
-            }`}
-          >
-            {isUpcoming ? 'Upcoming' : isPast ? 'Past' : 'Running'}
-          </span>
+        <div className="flex flex-col min-h-screen p-8 pt-24
+                        bg-gradient-to-br from-white to-gray-100 text-gray-900
+                        dark:from-gray-900 dark:to-black dark:text-white">
+            
+            <header className="text-center mt-8 mb-10 px-4">
+                <h1 className="text-4xl md:text-5xl font-extrabold mb-4 animate-fade-in-up">
+                    Upcoming <span className="text-blue-600 drop-shadow-lg dark:text-blue-400">Contests</span>
+                </h1>
+                <p className="text-lg md:text-xl max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-100
+                              text-gray-700 dark:text-gray-300">
+                    Challenge your skills in a time-bound programming competition.
+                </p>
+            </header>
+
+            <section className="flex-grow w-full max-w-6xl mx-auto mb-24">
+                {/* Tabs */}
+                <div className="flex justify-center gap-4 mb-6">
+                    {["upcoming", "ongoing", "past"].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-6 py-3 rounded-md font-semibold transition ${activeTab === tab
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300 shadow hover:shadow-lg"
+                                }`}
+                        >
+                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Table View */}
+                {filteredContests.length === 0 ? (
+                    <div className="text-center text-gray-500 mt-16">
+                        No {activeTab} contests at the moment.
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto rounded-lg shadow-lg">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-200 dark:bg-gray-700">
+                                <tr>
+                                    <th scope="col" className="py-3 px-6 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider rounded-tl-lg">
+                                        Name
+                                    </th>
+                                    <th scope="col" className="py-3 px-6 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        Description
+                                    </th>
+                                    <th scope="col" className="py-3 px-6 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        Start Time
+                                    </th>
+                                    <th scope="col" className="py-3 px-6 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        End Time
+                                    </th>
+                                    <th scope="col" className="py-3 px-6 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider rounded-tr-lg">
+                                        Action
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {filteredContests.map((contest, index) => (
+                                    <tr
+                                        key={contest._id}
+                                        className={`hover:bg-gray-100 dark:hover:bg-slate-900 transition duration-150 ease-in-out ${index % 2 === 0
+                                            ? "bg-white dark:bg-gray-800"
+                                            : "bg-gray-100 dark:bg-gray-900"
+                                            }`}
+                                    >
+                                        <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
+                                            <Link to={`/contest/${contest._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                                {contest.name}
+                                            </Link>
+                                        </td>
+                                        <td className="py-4 px-6 text-gray-700 dark:text-gray-300">
+                                            {contest.description}
+                                        </td>
+                                        <td className="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(contest.startTime).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
+                                        </td>
+                                        <td className="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(contest.endTime).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
+                                        </td>
+                                        <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
+                                            {activeTab === "upcoming" && !isUserRegistered(contest) ? (
+                                                <button
+                                                    onClick={() => handleRegister(contest._id)}
+                                                    className="px-4 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition duration-200"
+                                                >
+                                                    Register
+                                                </button>
+                                            ) : (
+                                                <Link
+                                                    to={`/contest/${contest._id}`}
+                                                    className="px-4 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-200"
+                                                >
+                                                    View
+                                                </Link>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            {showSnackbar && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
+                    <div className="bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-800/50 dark:border-white/50 backdrop-blur-md">
+                        <p className="font-semibold text-sm sm:text-base">{snackbarMessage}</p>
+                    </div>
+                </div>
+            )}
         </div>
-        <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
-          Starts: {format(start, 'PPPpp')}
-          <br />
-          Duration: {Math.round((end - start) / 60000)} mins
-        </p>
-
-        <button
-          className={`mt-3 px-4 py-2 rounded font-medium ${
-            isUpcoming
-              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-              : 'border border-gray-400 text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          {isUpcoming ? 'Register' : isPast ? 'View' : 'Enter'} Contest
-        </button>
-      </div>
     );
-  };
-
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-      </div>
-    );
-
-  return (
-    <div className="pt-24 min-h-[calc(100vh-50px)] p-6 flex flex-col bg-gradient-to-br from-white to-gray-100 text-gray-900
-                    dark:from-gray-900 dark:to-black dark:text-white">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-700 dark:text-blue-300">Contests</h1>
-
-      <div className="flex justify-center mb-4 space-x-4">
-        <button
-          onClick={() => setTab('upcoming')}
-          className={`px-4 py-2 rounded ${
-            tab === 'upcoming' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
-          }`}
-        >
-          Upcoming
-        </button>
-        <button
-          onClick={() => setTab('past')}
-          className={`px-4 py-2 rounded ${
-            tab === 'past' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
-          }`}
-        >
-          Past
-        </button>
-      </div>
-
-      {tab === 'upcoming' ? (
-        upcoming.length === 0 ? (
-          <p className="text-center text-gray-500">No upcoming contests.</p>
-        ) : (
-          upcoming.map(renderContestCard)
-        )
-      ) : past.length === 0 ? (
-        <p className="text-center text-gray-500">No past contests.</p>
-      ) : (
-        past.map(renderContestCard)
-      )}
-    </div>
-  );
 };
 
 export default ContestListPage;

@@ -27,10 +27,6 @@ const submissionSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  isContestSubmission: {
-    type: Boolean,
-    default: false,
-  },
   testResults: [
     {
       testCase: Number,

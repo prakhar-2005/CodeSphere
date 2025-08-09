@@ -32,7 +32,6 @@ const getProblems = async (req, res) => {
     }
 };
 
-
 const getProblemById = async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
