@@ -26,6 +26,7 @@ const ProblemDetailPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
     const [showSnackbar, setShowSnackbar] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('Copied to clipboard!');
     const [activeTab, setActiveTab] = useState('Problem');
 
     const leftRef = useRef(null);
@@ -147,8 +148,9 @@ const ProblemDetailPage = () => {
         };
     }, [isDragging]);
 
-    const handleCopy = (text) => {
+    const handleCopy = (text, message) => {
         navigator.clipboard.writeText(text);
+        setSnackbarMessage(message);
         setShowSnackbar(true);
         setTimeout(() => setShowSnackbar(false), 2000);
     };
@@ -157,7 +159,6 @@ const ProblemDetailPage = () => {
         { value: 'python', label: 'Python' },
         { value: 'c', label: 'C' },
         { value: 'cpp', label: 'C++' },
-        { value: 'java', label: 'Java' },
     ];
 
     const starterCodeMap = {
@@ -348,12 +349,13 @@ int main() {
 
     const handleGenerateBoilerplate = async () => {
         if (!problem || !problem.description) {
-            setBoilerplateError('No problem description available to generate boilerplate.');
+            setSnackbarMessage('No problem description available to generate boilerplate.');
+            setShowSnackbar(true);
+            setTimeout(() => setShowSnackbar(false), 2000);
             return;
         }
 
         setGeneratingBoilerplate(true);
-        setBoilerplateError(null);
         setComplexityAnalysis(null);
 
         try {
@@ -377,10 +379,14 @@ int main() {
 
             const data = await response.json();
             setCode(data.boilerplateCode);
-            alert(`Boilerplate for ${selectedLanguage.toUpperCase()} generated and loaded into editor!`);
+            setSnackbarMessage(`Boilerplate for ${selectedLanguage.toUpperCase()} generated successfully!`);
+            setShowSnackbar(true);
+            setTimeout(() => setShowSnackbar(false), 2000);
         } catch (err) {
-            setBoilerplateError(`Error generating boilerplate: ${err.message}`);
             console.error('Generate Boilerplate Error:', err);
+            setSnackbarMessage('Error generating boilerplate');
+            setShowSnackbar(true);
+            setTimeout(() => setShowSnackbar(false), 2000);
         } finally {
             setGeneratingBoilerplate(false);
         }
@@ -610,7 +616,7 @@ int main() {
                                             <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">Input {index + 1}:</h4>
                                             <div className="relative group">
                                                 <button
-                                                    onClick={() => handleCopy(sample.input)}
+                                                    onClick={() => handleCopy(sample.input, 'Sample input copied to clipboard!')}
                                                     className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                                                 >
                                                     Copy
@@ -622,7 +628,7 @@ int main() {
                                             <h4 className="font-semibold text-gray-800 dark:text-gray-100 mt-3 mb-1">Output {index + 1}:</h4>
                                             <div className="relative group">
                                                 <button
-                                                    onClick={() => handleCopy(sample.input)}
+                                                    onClick={() => handleCopy(sample.output, 'Sample output copied to clipboard!')}
                                                     className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                                                 >
                                                     Copy
@@ -634,8 +640,10 @@ int main() {
                                         </div>
                                     ))}
                                     {showSnackbar && (
-                                        <div className="fixed bottom-4 right-4 bg-slate-700 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-300 z-50">
-                                            Copied to clipboard!
+                                        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
+                                            <div className="bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-800/50 dark:border-white/50 backdrop-blur-md">
+                                                <p className="font-semibold text-sm sm:text-base">{snackbarMessage}</p>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
