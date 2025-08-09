@@ -706,7 +706,7 @@ int main() {
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="p-3">
+                                                    <td className="p-3 border-b">
                                                         {new Date(submission.submittedAt).toLocaleString('en-GB', {
                                                             day: '2-digit',
                                                             month: '2-digit',
