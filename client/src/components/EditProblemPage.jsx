@@ -26,6 +26,18 @@ const EditProblemPage = () => {
 
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true); 
+    const [showSnackbar, setShowSnackbar] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarType, setSnackbarType] = useState('success');
+
+    const showNotification = (message, type = 'success') => {
+        setSnackbarMessage(message);
+        setSnackbarType(type);
+        setShowSnackbar(true);
+        setTimeout(() => {
+            setShowSnackbar(false);
+        }, 3000); 
+    };
 
     useEffect(() => {
         const fetchProblem = async () => {
@@ -34,7 +46,9 @@ const EditProblemPage = () => {
                 return;
             }
             try {
-                const response = await fetch(`${API_BASE_URL}/problems/${id}`);
+                const response = await fetch(`${API_BASE_URL}/problems/edit/${id}`, {
+                    credentials: 'include', 
+                });
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -55,7 +69,7 @@ const EditProblemPage = () => {
             } catch (err) {
                 setError(err.message);
                 console.error('Error fetching problem for edit:', err);
-                alert('Error loading problem for edit: ' + err.message);
+                alert('Error loading problem for edit: ' + err.message, 'error');
                 navigate('/problems'); 
             } finally {
                 setLoading(false);
@@ -162,11 +176,15 @@ const EditProblemPage = () => {
                 throw new Error(errorData.message || 'Failed to update problem.');
             }
 
-            alert('Problem updated successfully!');
-            navigate('/problems');
+            showNotification('Problem updated successfully!');
+            setTimeout(() => {
+                navigate('/problems');
+            }, 3000); 
         } catch (err) {
             setError(err.message);
             console.error('Update Problem Error:', err);
+
+            showNotification('Error updating problem: ' + err.message, 'error');
         } finally {
             setLoading(false);
         }
@@ -339,6 +357,15 @@ const EditProblemPage = () => {
                     {loading ? 'Saving changes...' : 'Save changes'}
                 </button>
             </form>
+
+            {showSnackbar && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
+                    <div className={`bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-800/50 dark:border-white/50 backdrop-blur-md
+                    ${snackbarType === 'success' ? 'border-green-500' : 'border-red-500'}`}>
+                        <p className="font-semibold text-sm sm:text-base">{snackbarMessage}</p>
+                    </div>
+                </div>
+            )}
         </div>
     </div>
 );
