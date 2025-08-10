@@ -1,7 +1,6 @@
-// client/src/pages/AddProblemPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // <--- Import useAuth
+import { useAuth } from '../context/AuthContext'; 
 
 const AddProblemPage = () => {
     const navigate = useNavigate();
@@ -10,29 +9,23 @@ const AddProblemPage = () => {
 
     const isAdmin = isAuthenticated && currentUser && currentUser.role === 'admin';
 
-    // Form states for problem details
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [inputFormat, setInputFormat] = useState('');
     const [outputFormat, setOutputFormat] = useState('');
     const [constraints, setConstraints] = useState('');
-    const [tags, setTags] = useState(''); // Comma-separated string
+    const [tags, setTags] = useState(''); 
     const [difficulty, setDifficulty] = useState('Easy');
-    const [rating, setRating] = useState(1200); // Default rating
-    const [timeLimit, setTimeLimit] = useState(1000); // Default 1000ms
-    const [memoryLimit, setMemoryLimit] = useState(256); // Default 256MB
+    const [rating, setRating] = useState(1200); 
+    const [timeLimit, setTimeLimit] = useState(1000);
+    const [memoryLimit, setMemoryLimit] = useState(256); 
 
-    // State for Sample Test Cases (array of objects)
     const [sampleTestCases, setSampleTestCases] = useState([{ input: '', output: '' }]);
-    // State for Hidden/Full Test Cases (array of objects)
     const [testCases, setTestCases] = useState([{ input: '', output: '' }]);
-    // Starter Code state is removed as per your request.
-    // const [starterCode, setStarterCode] = useState({ /* ... */ }); 
 
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // Redirect if not authenticated or not admin
     useEffect(() => {
         if (!loadingAuth && (!isAuthenticated || currentUser.role !== 'admin')) {
             alert('You must be logged in as an administrator to add problems.');
@@ -40,7 +33,6 @@ const AddProblemPage = () => {
         }
     }, [isAuthenticated, currentUser, loadingAuth, navigate, isAdmin]);
 
-    // Handlers for dynamic test cases
     const handleSampleTestCaseChange = (index, field, value) => {
         const newSampleTestCases = [...sampleTestCases];
         newSampleTestCases[index][field] = value;
@@ -71,13 +63,11 @@ const AddProblemPage = () => {
         setTestCases(newTestCases);
     };
 
-    // handleSubmit function
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         setLoading(true);
 
-        // Basic frontend validation
         if (!name || !description || !inputFormat || !outputFormat || !constraints || !tags || !difficulty || !timeLimit || !memoryLimit) {
             setError('Please fill all required basic problem fields.');
             setLoading(false);
@@ -117,7 +107,6 @@ const AddProblemPage = () => {
             memoryLimit: Number(memoryLimit),
             sampleTestCases,
             testCases,
-            // starterCode is not included as it's removed from schema/state
         };
 
         try {
@@ -126,7 +115,7 @@ const AddProblemPage = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include', // Send JWT for admin authorization
+                credentials: 'include',
                 body: JSON.stringify(problemData),
             });
 
@@ -145,7 +134,6 @@ const AddProblemPage = () => {
         }
     };
 
-    // Render loading state while checking auth
     if (loadingAuth) {
         return (
             <div className="flex flex-col min-h-screen p-8 pt-24 bg-gradient-to-br from-white to-gray-100 text-gray-900 dark:from-gray-900 dark:to-black dark:text-white items-center justify-center">
@@ -154,9 +142,8 @@ const AddProblemPage = () => {
         );
     }
 
-    // If not admin, the useEffect will redirect, but we need to return null here to avoid rendering the form prematurely
     if (!isAdmin) {
-        return null; // Or return a message like "Access Denied" if you prefer
+        return null; 
     }
 
     return (

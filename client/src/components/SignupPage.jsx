@@ -10,7 +10,7 @@ const SignupPage = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { login } = useAuth(); // Destructure login from useAuth()
+    const { login } = useAuth(); 
 
     const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL; 
 
