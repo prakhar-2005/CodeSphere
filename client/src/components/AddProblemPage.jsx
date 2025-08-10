@@ -25,6 +25,18 @@ const AddProblemPage = () => {
 
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [showSnackbar, setShowSnackbar] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarType, setSnackbarType] = useState('success');
+
+    const showNotification = (message, type = 'success') => {
+        setSnackbarMessage(message);
+        setSnackbarType(type);
+        setShowSnackbar(true);
+        setTimeout(() => {
+            setShowSnackbar(false);
+        }, 3000); 
+    };
 
     useEffect(() => {
         if (!loadingAuth && (!isAuthenticated || currentUser.role !== 'admin')) {
@@ -124,8 +136,10 @@ const AddProblemPage = () => {
                 throw new Error(errorData.message || 'Failed to add problem.');
             }
 
-            alert('Problem added successfully!');
-            navigate('/problems');
+            showNotification('Problem added successfully!');
+            setTimeout(() => {
+                navigate('/problems');
+            }, 3000);
         } catch (err) {
             setError(err.message);
             console.error('Add Problem Error:', err);
@@ -298,6 +312,15 @@ const AddProblemPage = () => {
                         {loading ? 'Adding Problem...' : 'Add Problem'}
                     </button>
                 </form>
+
+                {showSnackbar && (
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
+                        <div className={`bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-800/50 dark:border-white/50 backdrop-blur-md
+                        ${snackbarType === 'success' ? 'border-green-500' : 'border-red-500'}`}>
+                            <p className="font-semibold text-sm sm:text-base">{snackbarMessage}</p>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
