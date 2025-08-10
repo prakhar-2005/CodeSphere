@@ -35,7 +35,7 @@ const AddProblemPage = () => {
         setShowSnackbar(true);
         setTimeout(() => {
             setShowSnackbar(false);
-        }, 3000); 
+        }, 2000); 
     };
 
     useEffect(() => {
@@ -139,7 +139,7 @@ const AddProblemPage = () => {
             showNotification('Problem added successfully!');
             setTimeout(() => {
                 navigate('/problems');
-            }, 3000);
+            }, 2000);
         } catch (err) {
             setError(err.message);
             console.error('Add Problem Error:', err);

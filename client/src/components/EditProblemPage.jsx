@@ -36,7 +36,7 @@ const EditProblemPage = () => {
         setShowSnackbar(true);
         setTimeout(() => {
             setShowSnackbar(false);
-        }, 3000); 
+        }, 2000); 
     };
 
     useEffect(() => {
@@ -179,7 +179,7 @@ const EditProblemPage = () => {
             showNotification('Problem updated successfully!');
             setTimeout(() => {
                 navigate('/problems');
-            }, 3000); 
+            }, 2000); 
         } catch (err) {
             setError(err.message);
             console.error('Update Problem Error:', err);

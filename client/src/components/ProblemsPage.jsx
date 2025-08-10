@@ -20,7 +20,6 @@ const ProblemsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Pagination 
   const [currentPage, setCurrentPage] = useState(1);
   const [problemsPerPage] = useState(10);
 
@@ -30,6 +29,18 @@ const ProblemsPage = () => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const tagDropdownRef = useRef(null);
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState('success');
+
+  const showNotification = (message, type = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarType(type);
+    setShowSnackbar(true);
+    setTimeout(() => {
+      setShowSnackbar(false);
+    }, 3000);
+  };
 
   const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL
 
@@ -111,11 +122,11 @@ const ProblemsPage = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete problem.');
       }
-      alert('Problem deleted successfully!');
+      showNotification('Problem deleted successfully!');
       fetchProblems();
     } catch (err) {
       setError(err.message);
-      alert('Error deleting problem: ' + err.message);
+      showNotification('Error deleting problem: ' + err.message);
     }
   };
 
@@ -384,6 +395,15 @@ const ProblemsPage = () => {
           </nav>
         )}
       </section>
+
+      {showSnackbar && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
+          <div className={`bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-800/50 dark:border-white/50 backdrop-blur-md
+            ${snackbarType === 'success' ? 'border-green-500' : 'border-red-500'}`}>
+            <p className="font-semibold text-sm sm:text-base">{snackbarMessage}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
