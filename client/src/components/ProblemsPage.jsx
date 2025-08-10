@@ -77,6 +77,7 @@ const ProblemsPage = () => {
   }, []);
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchProblems();
   }, [selectedTags, selectedDifficulty, sortOrder]);
 
