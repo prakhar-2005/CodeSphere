@@ -48,10 +48,9 @@ const submitCode = async (req, res) => {
   }
 
   try {
-    const problem = await Problem.findById(problemId);
+    const problem = await Problem.findById(problemId).select('+testCases');
     if (!problem) return res.status(404).json({ message: 'Problem not found.' });
     const { testCases, timeLimit, memoryLimit } = problem;
-
     const response = await axios.post(`${process.env.COMPILER_BASE_URL}/judge`, {
       code,
       language,
