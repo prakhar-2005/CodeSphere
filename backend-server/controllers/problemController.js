@@ -50,6 +50,19 @@ const getProblemById = async (req, res) => {
     }
 };
 
+const getProblemForAdminEdit = async (req, res) => {
+    try {
+        const problem = await Problem.findById(req.params.id).select('+testCases');
+        if (!problem) {
+            return res.status(404).json({ message: 'Problem not found' });
+        }
+        res.status(200).json(problem);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 const getAllTags = async (req, res) => {
     try {
         const tags = await Problem.distinct("tags");
@@ -148,6 +161,7 @@ module.exports = {
     getProblems,
     createProblem,
     getProblemById,
+    getProblemForAdminEdit,
     deleteProblem,
     updateProblem,
     getAllTags,

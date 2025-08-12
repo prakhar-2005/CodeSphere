@@ -1,6 +1,6 @@
 const Submission = require('../models/Submission');
 const User = require('../models/User');
-const { uploadFile, getSignedUrl } = require('../utils/s3upload');
+const { uploadFile, getSignedUrl } = require('../utils/s3Upload');
 
 const getUserInfo = async (req, res) => {
   try {

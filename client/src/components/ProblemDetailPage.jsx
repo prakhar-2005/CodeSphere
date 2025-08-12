@@ -159,7 +159,6 @@ const ProblemDetailPage = () => {
         { value: 'python', label: 'Python' },
         { value: 'c', label: 'C' },
         { value: 'cpp', label: 'C++' },
-        { value: 'java', label: 'Java' },
     ];
 
     const starterCodeMap = {
@@ -350,12 +349,13 @@ int main() {
 
     const handleGenerateBoilerplate = async () => {
         if (!problem || !problem.description) {
-            setBoilerplateError('No problem description available to generate boilerplate.');
+            setSnackbarMessage('No problem description available to generate boilerplate.');
+            setShowSnackbar(true);
+            setTimeout(() => setShowSnackbar(false), 2000);
             return;
         }
 
         setGeneratingBoilerplate(true);
-        setBoilerplateError(null);
         setComplexityAnalysis(null);
 
         try {
@@ -379,10 +379,14 @@ int main() {
 
             const data = await response.json();
             setCode(data.boilerplateCode);
-            alert(`Boilerplate for ${selectedLanguage.toUpperCase()} generated and loaded into editor!`);
+            setSnackbarMessage(`Boilerplate for ${selectedLanguage.toUpperCase()} generated successfully!`);
+            setShowSnackbar(true);
+            setTimeout(() => setShowSnackbar(false), 2000);
         } catch (err) {
-            setBoilerplateError(`Error generating boilerplate: ${err.message}`);
             console.error('Generate Boilerplate Error:', err);
+            setSnackbarMessage('Error generating boilerplate');
+            setShowSnackbar(true);
+            setTimeout(() => setShowSnackbar(false), 2000);
         } finally {
             setGeneratingBoilerplate(false);
         }
@@ -624,7 +628,7 @@ int main() {
                                             <h4 className="font-semibold text-gray-800 dark:text-gray-100 mt-3 mb-1">Output {index + 1}:</h4>
                                             <div className="relative group">
                                                 <button
-                                                    onClick={() => handleCopy(sample.input, 'Sample output copied to clipboard!')}
+                                                    onClick={() => handleCopy(sample.output, 'Sample output copied to clipboard!')}
                                                     className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                                                 >
                                                     Copy
@@ -702,7 +706,7 @@ int main() {
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="p-3">
+                                                    <td className="p-3 border-b">
                                                         {new Date(submission.submittedAt).toLocaleString('en-GB', {
                                                             day: '2-digit',
                                                             month: '2-digit',

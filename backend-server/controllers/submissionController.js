@@ -87,7 +87,6 @@ const submitCode = async (req, res) => {
     }
 
     const { testCases, timeLimit, memoryLimit } = problem;
-
     const response = await axios.post(`${process.env.COMPILER_BASE_URL}/judge`, {
       code,
       language,

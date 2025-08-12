@@ -30,6 +30,7 @@ const runInContainer = async ({ language, code, input, timeLimit, memoryLimit })
             break;
         case 'java':
             fileName = 'Main.java';
+            binaryName = 'Main.class';
             compileCmd = 'javac Main.java';
             runCmd = `java Main < input.txt`;
             break;
@@ -49,14 +50,15 @@ const runInContainer = async ({ language, code, input, timeLimit, memoryLimit })
         `--cpus="0.5"`,
         '--pids-limit=64',
         `-v "${tempDir}:/app"`,
+        `--workdir="/app"`, 
         'codesphere-compiler',
         'sh -c'
     ];
 
-    // Step 1: Compile
+    // Compile
     if (compileCmd) {
         const compileDockerCmd = [...dockerBase];
-        compileDockerCmd.push(`"cd /app && ${compileCmd}"`);
+        compileDockerCmd.push(`"${compileCmd}"`);
         const compileFullCmd = compileDockerCmd.join(' ');
 
         const compileResult = await new Promise((resolve) => {
@@ -78,20 +80,19 @@ const runInContainer = async ({ language, code, input, timeLimit, memoryLimit })
             return {
                 success: false,
                 output: compileResult.output,
-                errorType: 'Compile Error',
+                errorType: 'Compiler Error',
             };
         }
     }
 
-    // Step 2: Execute
+    // Execute
     const runDockerCmd = [
         ...dockerBase,
-        `"cd /app && ulimit -t ${Math.ceil(timeLimit / 1000)} && ulimit -v ${memoryLimit * 1024} && timeout ${Math.ceil(timeLimit / 1000)}s ${runCmd}"`
+        `"ulimit -t ${Math.ceil(timeLimit / 1000)} && ulimit -v ${memoryLimit * 1024} && timeout ${Math.ceil(timeLimit / 1000)}s ${runCmd}"`
     ].join(' ');
 
     return new Promise((resolve) => {
         exec(runDockerCmd, async (err, stdout, stderr) => {
-            // await fs.rm(tempDir, { recursive: true, force: true });
             try {
                 await fs.rm(tempDir, { recursive: true, force: true });
                 console.log(`🧹 Temp directory ${tempDir} deleted successfully.`);
