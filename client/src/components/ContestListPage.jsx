@@ -9,11 +9,23 @@ const ContestListPage = () => {
     const [error, setError] = useState(null);
     const [showSnackbar, setShowSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarType, setSnackbarType] = useState('success');
 
     const { currentUser, isAuthenticated } = useAuth();
+    const isAdmin = isAuthenticated && currentUser && currentUser.role === 'admin';
     const navigate = useNavigate();
 
     const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
+
+    // Helper function for showing snackbar notifications
+    const showNotification = (message, type = 'success') => {
+        setSnackbarMessage(message);
+        setSnackbarType(type);
+        setShowSnackbar(true);
+        setTimeout(() => {
+            setShowSnackbar(false);
+        }, 3000);
+    };
 
     const fetchAndSetContests = async () => {
         setLoading(true);
@@ -63,20 +75,35 @@ const ContestListPage = () => {
             });
 
             if (response.ok) {
-                setSnackbarMessage(`Successfully registered 🎉`);
-                setShowSnackbar(true);
-                setTimeout(() => setShowSnackbar(false), 3000); 
+                showNotification(`Successfully registered 🎉`);
                 await fetchAndSetContests();
             } else {
                 const errorData = await response.json();
-                setSnackbarMessage(`${errorData}`);
-                setShowSnackbar(true);
-                setTimeout(() => setShowSnackbar(false), 3000); 
+                showNotification(`Error: ${errorData.message || 'Registration failed.'}`, 'error');
             }
         } catch (error) {
-            setSnackbarMessage("Error registering for contest");
-            setShowSnackbar(true);
-            setTimeout(() => setShowSnackbar(false), 3000); 
+            showNotification("Error registering for contest", 'error');
+        }
+    };
+
+    const handleDeleteContest = async (contestId) => {
+        if (!window.confirm('Are you sure you want to delete this contest? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/contests/${contestId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete contest.');
+            }
+            showNotification('Contest deleted successfully!');
+            fetchAndSetContests();
+        } catch (err) {
+            showNotification(`Error deleting contest: ${err.message}`, 'error');
         }
     };
 
@@ -104,9 +131,9 @@ const ContestListPage = () => {
 
     return (
         <div className="flex flex-col min-h-screen p-8 pt-24
-                        bg-gradient-to-br from-white to-gray-100 text-gray-900
-                        dark:from-gray-900 dark:to-black dark:text-white">
-            
+                         bg-gradient-to-br from-white to-gray-100 text-gray-900
+                         dark:from-gray-900 dark:to-black dark:text-white">
+
             <header className="text-center mt-8 mb-10 px-4">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-4 animate-fade-in-up">
                     Upcoming <span className="text-blue-600 drop-shadow-lg dark:text-blue-400">Contests</span>
@@ -115,6 +142,17 @@ const ContestListPage = () => {
                               text-gray-700 dark:text-gray-300">
                     Challenge your skills in a time-bound programming competition.
                 </p>
+                {/* Admin "Add Contest" Button */}
+                {isAdmin && (
+                    <div className="mt-6">
+                        <Link
+                            to="/admin/add-contest"
+                            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 transition duration-300"
+                        >
+                            <i className="fas fa-plus-circle mr-2"></i> Add New Contest
+                        </Link>
+                    </div>
+                )}
             </header>
 
             <section className="flex-grow w-full max-w-6xl mx-auto mb-24">
@@ -157,7 +195,7 @@ const ContestListPage = () => {
                                         End Time
                                     </th>
                                     <th scope="col" className="py-3 px-6 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider rounded-tr-lg">
-                                        Action
+                                        {isAdmin ? 'Actions' : 'Action'}
                                     </th>
                                 </tr>
                             </thead>
@@ -185,7 +223,16 @@ const ContestListPage = () => {
                                             {new Date(contest.endTime).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
                                         </td>
                                         <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
-                                            {activeTab === "upcoming" && !isUserRegistered(contest) ? (
+                                            {isAdmin ? (
+                                                <div className="flex space-x-5">
+                                                    <Link to={`/admin/edit-contest/${contest._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                                        <i className="fas fa-pencil-alt"></i>
+                                                    </Link>
+                                                    <button onClick={() => handleDeleteContest(contest._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                                        <i className="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
+                                            ) : activeTab === "upcoming" && !isUserRegistered(contest) ? (
                                                 <button
                                                     onClick={() => handleRegister(contest._id)}
                                                     className="px-4 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition duration-200"
@@ -211,7 +258,8 @@ const ContestListPage = () => {
 
             {showSnackbar && (
                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
-                    <div className="bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-800/50 dark:border-white/50 backdrop-blur-md">
+                    <div className={`bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border backdrop-blur-md
+                            ${snackbarType === 'success' ? 'border-green-500' : 'border-red-500'}`}>
                         <p className="font-semibold text-sm sm:text-base">{snackbarMessage}</p>
                     </div>
                 </div>

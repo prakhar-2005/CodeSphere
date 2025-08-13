@@ -129,7 +129,7 @@ const ContestDetailPage = () => {
             return 'Past';
         }
     };
-
+    
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen p-8 pt-24 dark:bg-gray-900 dark:text-white items-center justify-center">
@@ -166,8 +166,8 @@ const ContestDetailPage = () => {
                     {contest.description}
                 </p>
                 <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                    <p>Starts: {new Date(contest.startTime).toLocaleString()}</p>
-                    <p>Ends: {new Date(contest.endTime).toLocaleString()}</p>
+                    <p>Starts: {new Date(contest.startTime).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</p>
+                    <p>Ends: {new Date(contest.endTime).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</p>
                     <p className={`font-semibold ${contestStatus === 'Ongoing' ? 'text-green-500' : 'text-yellow-500'}`}>{contestStatus}</p>
                 </div>
 
@@ -251,10 +251,7 @@ const ContestDetailPage = () => {
                         ) : (
                             <div className="text-center text-xl text-gray-500 mt-16">
                                 <p>You must be registered for this contest to view the problems.</p>
-                                <p>Problems will be available starting at: {new Date(contest.startTime).toLocaleString()}</p>
-                                {showRegisterButton && (
-                                    <button onClick={handleRegister} className="mt-4 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 transition duration-300">Register</button>
-                                )}
+                                <p>Problems will be available starting at: {new Date(contest.startTime).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</p>
                             </div>
                         )}
                     </div>

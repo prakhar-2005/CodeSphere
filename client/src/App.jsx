@@ -13,6 +13,8 @@ import EditProblemPage from './components/EditProblemPage'
 import ProfilePage from './components/ProfilePage'
 import ContestListPage from './components/ContestListPage'
 import ContestDetailPage from './components/ContestDetailPage'
+import AddContestPage from './components/AddContestPage'
+import EditContestPage from './components/EditContestPage'
 
 function App() {
   const [theme, setTheme] = useState('dark');
@@ -56,6 +58,8 @@ function App() {
           <Route path="/problems/:id" element={<ProblemDetailPage/>} />
           <Route path="/admin/add-problem" element={<AddProblemPage />} />
           <Route path="/admin/edit-problem/:id" element={<EditProblemPage />} />
+          <Route path="/admin/add-contest" element={<AddContestPage />} />
+          <Route path="/admin/edit-contest/:id" element={<EditContestPage />} />
         </Routes>
         <Footer />
       </Router>

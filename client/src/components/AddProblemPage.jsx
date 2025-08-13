@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../context/AuthContext';
 
 const AddProblemPage = () => {
     const navigate = useNavigate();
@@ -14,11 +14,12 @@ const AddProblemPage = () => {
     const [inputFormat, setInputFormat] = useState('');
     const [outputFormat, setOutputFormat] = useState('');
     const [constraints, setConstraints] = useState('');
-    const [tags, setTags] = useState(''); 
+    const [tags, setTags] = useState('');
     const [difficulty, setDifficulty] = useState('Easy');
-    const [rating, setRating] = useState(1200); 
+    const [rating, setRating] = useState(1200);
     const [timeLimit, setTimeLimit] = useState(1000);
-    const [memoryLimit, setMemoryLimit] = useState(256); 
+    const [memoryLimit, setMemoryLimit] = useState(256);
+    const [isContestOnly, setIsContestOnly] = useState(false);
 
     const [sampleTestCases, setSampleTestCases] = useState([{ input: '', output: '' }]);
     const [testCases, setTestCases] = useState([{ input: '', output: '' }]);
@@ -35,7 +36,7 @@ const AddProblemPage = () => {
         setShowSnackbar(true);
         setTimeout(() => {
             setShowSnackbar(false);
-        }, 2000); 
+        }, 2000);
     };
 
     useEffect(() => {
@@ -121,8 +122,15 @@ const AddProblemPage = () => {
             testCases,
         };
 
+        // If 'isContestOnly' is checked, set a special, non-null ID.
+        // This ID will be filtered out by the public 'getProblems' endpoint.
+        // It's a valid ObjectId but doesn't correspond to a real contest.
+        if (isContestOnly) {
+            problemData.contestId = '000000000000000000000000';
+        }
+
         try {
-            const response = await fetch(`${API_BASE_URL}/problems`, { 
+            const response = await fetch(`${API_BASE_URL}/problems`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -157,13 +165,13 @@ const AddProblemPage = () => {
     }
 
     if (!isAdmin) {
-        return null; 
+        return null;
     }
 
     return (
         <div className="flex flex-col min-h-screen p-8 pt-24
-                        bg-gradient-to-br from-white to-gray-100 text-gray-900
-                        dark:from-gray-900 dark:to-black dark:text-white">
+                         bg-gradient-to-br from-white to-gray-100 text-gray-900
+                         dark:from-gray-900 dark:to-black dark:text-white">
             <div className="container mx-auto bg-white dark:bg-gray-800 p-10 rounded-lg shadow-2xl w-full max-w-5xl my-10 border border-gray-200 dark:border-gray-700">
                 <h2 className="text-4xl font-extrabold text-center mb-10 text-blue-600 dark:text-blue-400">
                     Add New Coding Problem
@@ -236,6 +244,19 @@ const AddProblemPage = () => {
                                 className="w-full px-4 py-2 border rounded-md shadow-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500" />
                         </div>
                     </div>
+                    {/* New checkbox for contest-only problems */}
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            id="isContestOnly"
+                            checked={isContestOnly}
+                            onChange={(e) => setIsContestOnly(e.target.checked)}
+                            className="form-checkbox h-5 w-5 text-blue-600 dark:text-blue-400"
+                        />
+                        <label htmlFor="isContestOnly" className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                            Create as contest-only problem (initially hidden from public)
+                        </label>
+                    </div>
 
                     {/* Sample Test Cases */}
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8">
@@ -256,14 +277,14 @@ const AddProblemPage = () => {
                                 </div>
                                 {sampleTestCases.length > 1 && (
                                     <button type="button" onClick={() => removeSampleTestCase(index)}
-                                        className="mt-3 text-red-600 hover:text-red-800 text-lg font-medium inline-flex items-center justify-center w-32"> {/* Increased w-28 to w-32 */}
+                                        className="mt-3 text-red-600 hover:text-red-800 text-lg font-medium inline-flex items-center justify-center w-32">
                                         <i className="fas fa-minus-circle mr-1"></i> Remove
                                     </button>
                                 )}
                             </div>
                         ))}
                         <button type="button" onClick={addSampleTestCase}
-                            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-700 bg-blue-100 dark:bg-blue-300 hover:bg-blue-200 transition duration-300 w-60"> {/* Increased w-56 to w-60 */}
+                            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-700 bg-blue-100 dark:bg-blue-300 hover:bg-blue-200 transition duration-300 w-60">
                             <i className="fas fa-plus-circle mr-2"></i> Add Sample Test Case
                         </button>
                     </div>
@@ -287,7 +308,7 @@ const AddProblemPage = () => {
                                 </div>
                                 {testCases.length > 1 && (
                                     <button type="button" onClick={() => removeTestCase(index)}
-                                        className="mt-3 text-red-600 hover:text-red-800 text-lg font-medium inline-flex items-center justify-center w-32"> {/* Added justify-center and w-32 */}
+                                        className="mt-3 text-red-600 hover:text-red-800 text-lg font-medium inline-flex items-center justify-center w-32">
                                         <i className="fas fa-minus-circle mr-1"></i> Remove
                                     </button>
                                 )}
@@ -316,7 +337,7 @@ const AddProblemPage = () => {
                 {showSnackbar && (
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
                         <div className={`bg-gray-900/70 text-white dark:bg-white/70 dark:text-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-800/50 dark:border-white/50 backdrop-blur-md
-                        ${snackbarType === 'success' ? 'border-green-500' : 'border-red-500'}`}>
+                                ${snackbarType === 'success' ? 'border-green-500' : 'border-red-500'}`}>
                             <p className="font-semibold text-sm sm:text-base">{snackbarMessage}</p>
                         </div>
                     </div>

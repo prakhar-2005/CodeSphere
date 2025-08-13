@@ -1,23 +1,38 @@
 const Problem = require("../models/Problem");
 const mongoose = require('mongoose');
+const Contest = require('../models/Contest');
 
+// This function is for the public ProblemsPage
 const getProblems = async (req, res) => {
     try {
         const { tags, difficulty, sort } = req.query;
+        const now = new Date();
+        const PENDING_CONTEST_ID = '000000000000000000000000'; // Special ID for pending contest problems
 
-        const query = {};
+        // Find all contests that are currently ongoing or upcoming
+        const activeContests = await Contest.find({ endTime: { $gte: now } });
+        const activeContestIds = activeContests.map(c => c._id.toString());
 
+        // Add the pending ID to the list to hide those problems
+        activeContestIds.push(PENDING_CONTEST_ID);
+
+        const query = {
+            // A problem is public if its contestId is NOT in the list of active/pending contest IDs
+            contestId: { $nin: activeContestIds.map(id => new mongoose.Types.ObjectId(id)) }
+        };
+
+        // Apply filters directly to the query
         if (tags) {
             const tagsArray = tags.split(',').map(tag => tag.trim());
             query.tags = { $in: tagsArray };
         }
-
         if (difficulty && difficulty !== 'All') {
             query.difficulty = difficulty;
         }
 
         let problemsQuery = Problem.find(query);
 
+        // Apply sorting directly to the query
         if (sort === 'rating-asc') {
             problemsQuery = problemsQuery.sort({ rating: 1 });
         } else if (sort === 'rating-desc') {
@@ -52,11 +67,44 @@ const getProblemById = async (req, res) => {
 
 const getProblemForAdminEdit = async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid problem ID format' });
+        }
+
         const problem = await Problem.findById(req.params.id).select('+testCases');
         if (!problem) {
             return res.status(404).json({ message: 'Problem not found' });
         }
         res.status(200).json(problem);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+const getAllProblemsForAdmin = async (req, res) => {
+    try {
+        const { tags, difficulty, sort } = req.query;
+        const query = {};
+
+        if (tags) {
+            const tagsArray = tags.split(',').map(tag => tag.trim());
+            query.tags = { $in: tagsArray };
+        }
+        if (difficulty && difficulty !== 'All') {
+            query.difficulty = difficulty;
+        }
+
+        let problemsQuery = Problem.find(query);
+
+        if (sort === 'rating-asc') {
+            problemsQuery = problemsQuery.sort({ rating: 1 });
+        } else if (sort === 'rating-desc') {
+            problemsQuery = problemsQuery.sort({ rating: -1 });
+        }
+
+        const problems = await problemsQuery;
+        res.status(200).json(problems);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
@@ -76,18 +124,8 @@ const getAllTags = async (req, res) => {
 const createProblem = async (req, res) => {
     try {
         const {
-            name,
-            description,
-            inputFormat,
-            outputFormat,
-            sampleTestCases,
-            testCases,
-            timeLimit,
-            memoryLimit,
-            constraints,
-            tags,
-            difficulty,
-            rating,
+            name, description, inputFormat, outputFormat, sampleTestCases, testCases,
+            timeLimit, memoryLimit, constraints, tags, difficulty, rating, contestId
         } = req.body;
 
         if (!name || !description || !inputFormat || !outputFormat || !constraints || !tags || !difficulty || !testCases || !timeLimit || !memoryLimit) {
@@ -95,23 +133,13 @@ const createProblem = async (req, res) => {
         }
 
         const problem = await Problem.create({
-            name,
-            description,
-            inputFormat,
-            outputFormat,
-            sampleTestCases,
-            testCases,
-            timeLimit,
-            memoryLimit,
-            constraints,
-            tags,
-            difficulty,
-            rating,
+            name, description, inputFormat, outputFormat, sampleTestCases, testCases,
+            timeLimit, memoryLimit, constraints, tags, difficulty, rating, contestId
         });
 
         res.status(201).json(problem);
     } catch (error) {
-        if (error.code === 11000) { // MongoDB duplicate key error code
+        if (error.code === 11000) {
             return res.status(400).json({ message: 'Problem with this name already exists' });
         }
         console.error(error);
@@ -165,4 +193,5 @@ module.exports = {
     deleteProblem,
     updateProblem,
     getAllTags,
+    getAllProblemsForAdmin,
 };

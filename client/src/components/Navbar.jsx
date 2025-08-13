@@ -100,7 +100,7 @@ const Navbar = ({ theme, toggleTheme }) => {
                     <div className="relative" ref={profileMenuRef}>
                         <button
                             onClick={() => setShowProfileMenu(!showProfileMenu)}
-                            className="rounded-full bg-gray-700 w-10 h-10 flex items-center justify-center hover:bg-gray-600 transition"
+                            className="rounded-full ml-3 bg-gray-700 w-10 h-10 flex items-center justify-center hover:bg-gray-600 transition"
                         >
                             <i className="fas fa-user text-white"></i>
                         </button>

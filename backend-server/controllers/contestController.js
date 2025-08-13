@@ -1,6 +1,8 @@
 const Contest = require('../models/Contest');
 const Submission = require('../models/Submission');
 const User = require('../models/User');
+const Problem = require('../models/Problem');
+const mongoose = require('mongoose');
 
 const getAllContests = async (req, res) => {
   try {
@@ -22,7 +24,6 @@ const getContestById = async (req, res) => {
     const contest = await Contest.findById(req.params.id).populate('problems');
     if (!contest) return res.status(404).json({ message: 'Contest not found' });
 
-    // Access control: hide problems if not registered and contest not started
     const now = new Date();
     const isRegistered = contest.registeredUsers.includes(req.user?._id?.toString());
 
@@ -36,13 +37,117 @@ const getContestById = async (req, res) => {
   }
 };
 
+const createContest = async (req, res) => {
+  try {
+    const { name, description, startTime, endTime, problems } = req.body;
+
+    if (!name || !startTime || !endTime) {
+      return res.status(400).json({ message: 'Name, startTime, and endTime are required.' });
+    }
+
+    const newContest = await Contest.create({
+      name,
+      description,
+      startTime,
+      endTime,
+      problems,
+      createdBy: req.user._id,
+    });
+
+    // --- NEW LOGIC: Update the problems with the new contestId ---
+    if (problems && problems.length > 0) {
+      await Problem.updateMany(
+        { _id: { $in: problems } },
+        { $set: { contestId: newContest._id } }
+      );
+    }
+    // -------------------------------------------------------------
+
+    res.status(201).json(newContest);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const updateContest = async (req, res) => {
+  try {
+    const { problems: newProblemIds, ...restOfBody } = req.body;
+    const contestId = req.params.id;
+
+    // Find the old contest to get a list of original problems
+    const oldContest = await Contest.findById(contestId);
+    if (!oldContest) {
+      return res.status(404).json({ message: 'Contest not found.' });
+    }
+    const oldProblemIds = oldContest.problems.map(p => p.toString());
+
+    // Problems to be added: newProblemIds that were not in oldProblemIds
+    const problemsToAdd = newProblemIds.filter(id => !oldProblemIds.includes(id));
+    // Problems to be removed: oldProblemIds that are no longer in newProblemIds
+    const problemsToRemove = oldProblemIds.filter(id => !newProblemIds.includes(id));
+
+    // Update problems that were added to the contest
+    if (problemsToAdd.length > 0) {
+      await Problem.updateMany(
+        { _id: { $in: problemsToAdd } },
+        { $set: { contestId: contestId } }
+      );
+    }
+
+    // Update problems that were removed from the contest (set contestId back to null)
+    if (problemsToRemove.length > 0) {
+      await Problem.updateMany(
+        { _id: { $in: problemsToRemove } },
+        { $set: { contestId: null } }
+      );
+    }
+
+    // Now update the contest itself
+    const updatedContest = await Contest.findByIdAndUpdate(
+      contestId,
+      { problems: newProblemIds, ...restOfBody },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedContest) {
+      return res.status(404).json({ message: 'Contest not found.' });
+    }
+
+    res.json(updatedContest);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const deleteContest = async (req, res) => {
+  try {
+    const contest = await Contest.findByIdAndDelete(req.params.id);
+
+    if (!contest) {
+      return res.status(404).json({ message: 'Contest not found.' });
+    }
+
+    await Problem.updateMany(
+      { _id: { $in: contest.problems } },
+      { $set: { contestId: null } }
+    );
+
+    res.json({ message: 'Contest deleted successfully.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 const registerForContest = async (req, res) => {
   try {
     const contest = await Contest.findById(req.params.id);
     if (!contest) return res.status(404).json({ message: 'Contest not found' });
 
     const now = new Date();
-    const cutoff = new Date(contest.startTime.getTime() - 30 * 60000); // 30 mins before start
+    const cutoff = new Date(contest.startTime.getTime() - 30 * 60000);
     if (now > cutoff) {
       return res.status(400).json({ message: 'Registration closed' });
     }
@@ -74,9 +179,8 @@ const getContestLeaderboard = async (req, res) => {
     const submissions = await Submission.find({
       contestId: req.params.id,
       status: 'Accepted'
-    }).populate('user', 'username');
+    }).populate('user', 'username').populate('problem', 'name');
 
-    // Group by user and count accepted submissions
     const scores = {};
     for (const sub of submissions) {
       const uid = sub.user._id;
@@ -97,10 +201,27 @@ const getContestLeaderboard = async (req, res) => {
   }
 };
 
+const getContestForAdminEdit = async (req, res) => {
+    try {
+        const contest = await Contest.findById(req.params.id).populate('problems');
+        if (!contest) {
+            return res.status(404).json({ message: 'Contest not found' });
+        }
+        res.status(200).json(contest);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
   getAllContests,
   getContestById,
+  createContest,
+  updateContest,
+  deleteContest,
   registerForContest,
   getContestParticipants,
-  getContestLeaderboard
+  getContestLeaderboard,
+  getContestForAdminEdit
 };

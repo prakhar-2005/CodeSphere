@@ -56,12 +56,19 @@ const ProblemsPage = () => {
 
   const fetchProblems = async () => {
     try {
+      setLoading(true);
       const tagsQuery = selectedTags.length > 0 ? `tags=${selectedTags.join(',')}` : '';
       const difficultyQuery = selectedDifficulty !== 'All' ? `&difficulty=${selectedDifficulty}` : '';
       const sortQuery = sortOrder ? `&sort=rating-${sortOrder}` : '';
 
       const query = [tagsQuery, difficultyQuery, sortQuery].filter(Boolean).join('&');
-      const response = await fetch(`${API_BASE_URL}/problems?${query}`);
+
+      let response;
+      if (isAdmin) {
+        response = await fetch(`${API_BASE_URL}/problems/admin?${query}`, { credentials: 'include' });
+      } else {
+        response = await fetch(`${API_BASE_URL}/problems?${query}`);
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -90,7 +97,7 @@ const ProblemsPage = () => {
   useEffect(() => {
     setCurrentPage(1);
     fetchProblems();
-  }, [selectedTags, selectedDifficulty, sortOrder]);
+  }, [selectedTags, selectedDifficulty, sortOrder, currentUser]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
