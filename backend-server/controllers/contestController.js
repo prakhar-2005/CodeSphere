@@ -147,7 +147,7 @@ const registerForContest = async (req, res) => {
     if (!contest) return res.status(404).json({ message: 'Contest not found' });
 
     const now = new Date();
-    const cutoff = new Date(contest.startTime.getTime() - 30 * 60000);
+    const cutoff = new Date(contest.startTime.getTime() - 1 * 60000);
     if (now > cutoff) {
       return res.status(400).json({ message: 'Registration closed' });
     }
@@ -176,42 +176,114 @@ const getContestParticipants = async (req, res) => {
 
 const getContestLeaderboard = async (req, res) => {
   try {
-    const submissions = await Submission.find({
-      contestId: req.params.id,
-      status: 'Accepted'
-    }).populate('user', 'username').populate('problem', 'name');
-
-    const scores = {};
-    for (const sub of submissions) {
-      const uid = sub.user._id;
-      if (!scores[uid]) {
-        scores[uid] = { user: sub.user, solved: new Set() };
-      }
-      scores[uid].solved.add(sub.problem.toString());
+    const { id } = req.params;
+    const contest = await Contest.findById(id).populate('problems');
+    if (!contest) {
+      return res.status(404).json({ message: 'Contest not found' });
     }
 
-    const leaderboard = Object.values(scores).map(({ user, solved }) => ({
-      username: user.username,
-      solvedCount: solved.size
-    })).sort((a, b) => b.solvedCount - a.solvedCount);
+    const contestStartTime = contest.startTime;
+    const penaltyPerWrongAnswer = 10; // minutes
 
-    res.json(leaderboard);
+    const submissions = await Submission.find({ contest: id })
+      .sort({ submittedAt: 1 })
+      .populate('userId', 'username')
+      .populate('problemId', 'rating');
+
+    const leaderboardMap = {};
+
+    for (const registeredUser of contest.registeredUsers) {
+      const user = await User.findById(registeredUser.toString());
+      if (user) {
+        leaderboardMap[registeredUser.toString()] = {
+          username: user.username,
+          score: 0,
+          solvedCount: 0,
+          problemScores: {},
+          lastAccepted: null,
+        };
+      }
+    }
+
+    const problemOrderMap = contest.problems.reduce((map, problem, index) => {
+      map[problem._id.toString()] = { problem, order: index + 1 };
+      return map;
+    }, {});
+
+    for (const sub of submissions) {
+      const userId = sub.userId._id.toString();
+      const problemId = sub.problemId._id.toString();
+      const problemRating = sub.problemId.rating;
+      const submittedAt = sub.submittedAt;
+
+      const userEntry = leaderboardMap[userId];
+      if (!userEntry) continue; 
+      if (!userEntry.problemScores[problemId]) {
+        userEntry.problemScores[problemId] = { status: 'Not Attempted', timeTaken: null, wrongAttempts: 0 };
+      }
+
+      const problemEntry = userEntry.problemScores[problemId];
+      if (problemEntry.status === 'Accepted') {
+        continue; 
+      }
+
+      if (sub.status === 'Accepted') {
+        const timeTakenMs = submittedAt - contestStartTime;
+        const timeTakenMinutes = Math.floor(timeTakenMs / (1000 * 60));
+
+        userEntry.score += problemRating;
+        userEntry.score -= timeTakenMinutes;
+        userEntry.score -= problemEntry.wrongAttempts * penaltyPerWrongAnswer;
+
+        userEntry.solvedCount++;
+        userEntry.lastAccepted = submittedAt;
+
+        problemEntry.status = 'Accepted';
+        problemEntry.timeTaken = timeTakenMinutes;
+
+      } else {
+        problemEntry.status = sub.status;
+        problemEntry.wrongAttempts++;
+      }
+    }
+
+    const finalLeaderboard = Object.values(leaderboardMap)
+      .map(entry => ({
+        username: entry.username,
+        score: entry.score,
+        solvedCount: entry.solvedCount,
+        problemScores: entry.problemScores,
+        lastAccepted: entry.lastAccepted,
+      }))
+      .sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        if (b.solvedCount !== a.solvedCount) {
+          return b.solvedCount - a.solvedCount;
+        }
+        return a.lastAccepted - b.lastAccepted;
+      });
+
+    res.status(200).json({ leaderboard: finalLeaderboard, problems: contest.problems });
+
   } catch (err) {
+    console.error('Error generating contest leaderboard:', err);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
 const getContestForAdminEdit = async (req, res) => {
-    try {
-        const contest = await Contest.findById(req.params.id).populate('problems');
-        if (!contest) {
-            return res.status(404).json({ message: 'Contest not found' });
-        }
-        res.status(200).json(contest);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server Error' });
+  try {
+    const contest = await Contest.findById(req.params.id).populate('problems');
+    if (!contest) {
+      return res.status(404).json({ message: 'Contest not found' });
     }
+    res.status(200).json(contest);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
 };
 
 module.exports = {

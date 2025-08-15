@@ -14,9 +14,10 @@ import 'monaco-editor/esm/vs/basic-languages/java/java.contribution';
 const ProblemDetailPage = () => {
     const { id } = useParams(); // get problem ID from URL
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, currentUser } = useAuth();
 
     const [problem, setProblem] = useState(null);
+    const [contest, setContest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [code, setCode] = useState('// Write your code here');
@@ -54,6 +55,22 @@ const ProblemDetailPage = () => {
     const [analyzingComplexity, setAnalyzingComplexity] = useState(false);
     const [complexityAnalysis, setComplexityAnalysis] = useState(null);
     const [complexityError, setComplexityError] = useState(null);
+    const isContestProblem = !!problem?.contestId;
+    const now = new Date();
+    const isContestPast = problem?.contestId && contest && new Date(contest.endTime) < new Date();
+    const isContestOngoing = isContestProblem && new Date(contest?.startTime) <= now && now <= new Date(contest?.endTime);
+    const isRegistered = isContestProblem && contest?.registeredUsers?.includes(currentUser?._id?.toString());
+    const isSubmitDisabled = isSubmitting || (isContestOngoing && !isRegistered);
+    let submitButtonText = 'Submit';
+    if (isSubmitting) {
+        submitButtonText = 'Submitting...';
+    } else if (isContestOngoing && !isRegistered) {
+        submitButtonText = 'Register for Contest to Submit';
+    } else if (isContestProblem && isContestPast) {
+        submitButtonText = 'Submit';
+    }
+    const submitButtonClass = `px-6 py-3 rounded-lg text-white font-bold transition duration-300 shadow-md transform hover:scale-105 ${isSubmitDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+        }`;
 
     useEffect(() => {
         setPage(1);
@@ -127,7 +144,6 @@ const ProblemDetailPage = () => {
             const containerRect = container.getBoundingClientRect();
             const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
 
-            // Clamp between 20% and 80%
             if (newLeftWidth > 20 && newLeftWidth < 80) {
                 setLeftWidth(newLeftWidth);
             }
@@ -203,6 +219,18 @@ int main() {
                 if (data.sampleTestCases && data.sampleTestCases.length > 0) {
                     setCustomInput(data.sampleTestCases[0].input);
                 }
+
+                if (data.contestId) {
+                    const contestResponse = await fetch(`${API_BASE_URL}/contests/${data.contestId}`, {
+                        credentials: 'include'
+                    });
+                    if (contestResponse.ok) {
+                        const contestData = await contestResponse.json();
+                        setContest(contestData);
+                    }
+                } else {
+                    setContest(null);
+                }
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -265,6 +293,16 @@ int main() {
         setOutput('Submitting solution...');
         setComplexityAnalysis(null);
 
+        const submissionPayload = {
+            problemId: id,
+            code,
+            language: selectedLanguage,
+        };
+
+        if (problem.contestId) {
+            submissionPayload.contestId = problem.contestId;
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}/submission/submit`, {
                 method: 'POST',
@@ -272,7 +310,7 @@ int main() {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({ problemId: id, code, language: selectedLanguage }),
+                body: JSON.stringify(submissionPayload),
             });
 
             if (!response.ok) {
@@ -963,10 +1001,10 @@ int main() {
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isSubmitting}
-                            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition duration-300 shadow-md transform hover:scale-105"
+                            disabled={isSubmitDisabled}
+                            className={submitButtonClass}
                         >
-                            {isSubmitting ? 'Submitting...' : 'Submit'}
+                            {submitButtonText}
                         </button>
                     </div>
                 </div>

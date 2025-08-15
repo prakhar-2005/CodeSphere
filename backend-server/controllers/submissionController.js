@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Problem = require('../models/Problem');
 const Submission = require('../models/Submission');
+const Contest = require('../models/Contest');
 const axios = require('axios');
 
 const runCode = async (req, res) => {
@@ -49,12 +50,12 @@ const submitCode = async (req, res) => {
   }
 
   try {
-    const problem = await Problem.findById(problemId);
+    const problem = await Problem.findById(problemId).select('+testCases');
     if (!problem) {
       return res.status(404).json({ message: 'Problem not found.' });
     }
 
-    let isContestSubmission = false;
+    let contestSubmission = null;
     if (contestId) {
       if (!mongoose.Types.ObjectId.isValid(contestId)) {
         return res.status(400).json({ message: 'Invalid contest ID format.' });
@@ -66,24 +67,22 @@ const submitCode = async (req, res) => {
       }
 
       const now = new Date();
-      if (now < new Date(contest.startTime)) {
+      const isContestOngoing = now >= new Date(contest.startTime) && now <= new Date(contest.endTime);
+      if (isContestOngoing) {
+        const isInContest = contest.problems.some(pId => pId.toString() === problemId);
+        if (!isInContest) {
+          return res.status(400).json({ message: 'This problem is not part of the contest.' });
+        }
+
+        const isRegistered = contest.registeredUsers.some(regId => regId.toString() === userId.toString());
+        if (!isRegistered) {
+          return res.status(403).json({ message: 'You are not registered for this contest.' });
+        }
+
+        contestSubmission = contest._id;
+      } else if (now < new Date(contest.startTime)) {
         return res.status(403).json({ message: 'Contest has not started yet.' });
       }
-      if (now > new Date(contest.endTime)) {
-        return res.status(403).json({ message: 'Contest has already ended.' });
-      }
-
-      const isInContest = contest.problems.some(pId => pId.toString() === problemId);
-      if (!isInContest) {
-        return res.status(400).json({ message: 'This problem is not part of the contest.' });
-      }
-
-      const isRegistered = contest.registeredUsers.includes(userId); // Correct field name
-      if (!isRegistered) {
-        return res.status(403).json({ message: 'You are not registered for this contest.' });
-      }
-
-      isContestSubmission = true;
     }
 
     const { testCases, timeLimit, memoryLimit } = problem;
@@ -103,7 +102,7 @@ const submitCode = async (req, res) => {
       language,
       code,
       status: verdict,
-      contest: isContestSubmission ? contestId : null,
+      contest: contestSubmission,
       failedCaseIndex,
       testResults,
     });
@@ -161,8 +160,42 @@ const getUserSubmissionsForProblem = async (req, res) => {
   }
 };
 
+const getUserAcceptedSubmissionsForContest = async (req, res) => {
+  const { contestId } = req.params;
+  const userId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(contestId)) {
+    return res.status(400).json({ message: 'Invalid contest ID format.' });
+  }
+
+  try {
+    const contest = await Contest.findById(contestId).select('problems');
+    if (!contest) {
+      return res.status(404).json({ message: 'Contest not found.' });
+    }
+    const problemIds = contest.problems.map(p => p.toString());
+    
+    const acceptedSubmissions = await Submission.find({
+      userId,
+      status: 'Accepted',
+      $or: [
+        { contest: contestId },
+        { contest: null, problemId: { $in: problemIds } }
+      ]
+    }).select('problemId');
+
+    const solvedProblemIds = [...new Set(acceptedSubmissions.map(sub => sub.problemId.toString()))];
+
+    res.status(200).json(solvedProblemIds);
+  } catch (error) {
+    console.error('Error fetching accepted submissions for contest:', error);
+    res.status(500).json({ message: 'Server error while fetching solved problems.' });
+  }
+};
+
 module.exports = {
   runCode,
   submitCode,
   getUserSubmissionsForProblem,
+  getUserAcceptedSubmissionsForContest
 };
