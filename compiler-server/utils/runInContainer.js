@@ -1,7 +1,9 @@
-const { exec } = require('child_process');
+const Docker = require('dockerode');
 const fs = require('fs/promises');
 const path = require('path');
 const { v4: uuid } = require('uuid');
+
+const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 const runInContainer = async ({ language, code, input, timeLimit, memoryLimit }) => {
     const jobId = uuid();
@@ -35,6 +37,7 @@ const runInContainer = async ({ language, code, input, timeLimit, memoryLimit })
             runCmd = `java Main < input.txt`;
             break;
         default:
+            await fs.rm(tempDir, { recursive: true, force: true });
             throw new Error('Unsupported language');
     }
 
@@ -44,105 +47,62 @@ const runInContainer = async ({ language, code, input, timeLimit, memoryLimit })
     const inputPath = path.join(tempDir, 'input.txt');
     await fs.writeFile(inputPath, input);
 
-    const dockerBase = [
-        'docker run --rm',
-        `--memory="${memoryLimit}m"`,
-        `--cpus="0.5"`,
-        '--pids-limit=64',
-        `-v "${tempDir}:/app"`,
-        `--workdir="/app"`, 
-        'codesphere-compiler',
-        'sh -c'
-    ];
+    const containerConfig = {
+        Image: 'codesphere-compiler',
+        Tty: true,
+        HostConfig: {
+            Binds: [`${tempDir}:/app`],
+            Memory: memoryLimit * 1024 * 1024,
+            Cpus: 0.5,
+            PidsLimit: 64,
+        },
+        WorkingDir: '/app',
+        Cmd: ['sh', '-c', ''],
+    };
 
-    // Compile
-    if (compileCmd) {
-        const compileDockerCmd = [...dockerBase];
-        compileDockerCmd.push(`"${compileCmd}"`);
-        const compileFullCmd = compileDockerCmd.join(' ');
+    let result;
 
-        const compileResult = await new Promise((resolve) => {
-            exec(compileFullCmd, (err, stdout, stderr) => {
-                if (err) {
-                    resolve({
-                        success: false,
-                        stage: 'compile',
-                        output: stderr || err.message,
-                    });
-                } else {
-                    resolve({ success: true });
-                }
-            });
-        });
-
-        if (!compileResult.success) {
-            await fs.rm(tempDir, { recursive: true, force: true });
-            return {
-                success: false,
-                output: compileResult.output,
-                errorType: 'Compiler Error',
-            };
-        }
-    }
-
-    // Execute
-    const runDockerCmd = [
-        ...dockerBase,
-        `"ulimit -t ${Math.ceil(timeLimit / 1000)} && ulimit -v ${memoryLimit * 1024} && timeout ${Math.ceil(timeLimit / 1000)}s ${runCmd}"`
-    ].join(' ');
-
-    return new Promise((resolve) => {
-        exec(runDockerCmd, async (err, stdout, stderr) => {
-            try {
+    try {
+        if (compileCmd) {
+            containerConfig.Cmd[2] = compileCmd;
+            const output = await docker.run(containerConfig.Image, containerConfig.Cmd, process.stdout, containerConfig.HostConfig);
+            if (output.exitCode !== 0) {
                 await fs.rm(tempDir, { recursive: true, force: true });
-                console.log(`🧹 Temp directory ${tempDir} deleted successfully.`);
-            } catch (e) {
-                console.error(`❌ Failed to delete temp directory ${tempDir}:`, e.message);
-            }
-
-            if (err) {
-                const errorText = (stderr || err.message || '').toLowerCase();
-                const exitCode = err.code;
-
-                if (
-                    errorText.includes('timeout') ||
-                    errorText.includes('timed out') ||
-                    errorText.includes('command terminated') ||
-                    exitCode === 124
-                ) {
-                    return resolve({
-                        success: false,
-                        output: 'Time Limit Exceeded',
-                        errorType: 'Time Limit Exceeded',
-                    });
-                }
-
-                if (
-                    errorText.includes('killed') ||
-                    errorText.includes('memory') ||
-                    errorText.includes('signal') ||
-                    exitCode === 137
-                ) {
-                    return resolve({
-                        success: false,
-                        output: 'Memory Limit Exceeded',
-                        errorType: 'Memory Limit Exceeded',
-                    });
-                }
-
-                return resolve({
+                return {
                     success: false,
-                    output: stderr || err.message,
-                    errorType: 'Runtime Error',
-                });
+                    output: `Compiler Error: ${output.output.stderr}`,
+                    errorType: 'Compiler Error',
+                };
             }
+        }
 
-            return resolve({
-                success: true,
-                output: stdout,
-            });
-        });
-    });
+        const runCommand = `ulimit -t ${Math.ceil(timeLimit / 1000)} && ulimit -v ${memoryLimit * 1024} && timeout ${Math.ceil(timeLimit / 1000)}s ${runCmd}`;
+        containerConfig.Cmd[2] = runCommand;
+        result = await docker.run(containerConfig.Image, containerConfig.Cmd, process.stdout, containerConfig.HostConfig);
+
+        const { exitCode, output } = result;
+        if (exitCode !== 0) {
+            const errorText = (output.stderr || output.stdout || '').toLowerCase();
+            if (errorText.includes('timeout') || exitCode === 124) {
+                return { success: false, output: 'Time Limit Exceeded', errorType: 'Time Limit Exceeded' };
+            }
+            if (errorText.includes('killed') || exitCode === 137) {
+                return { success: false, output: 'Memory Limit Exceeded', errorType: 'Memory Limit Exceeded' };
+            }
+            return { success: false, output: output.stderr, errorType: 'Runtime Error' };
+        }
+
+        return { success: true, output: output.stdout };
+
+    } catch (err) {
+        return {
+            success: false,
+            output: `Docker execution error: ${err.message}`,
+            errorType: 'Internal Error',
+        };
+    } finally {
+        await fs.rm(tempDir, { recursive: true, force: true });
+    }
 };
 
 module.exports = runInContainer;
