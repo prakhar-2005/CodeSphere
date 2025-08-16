@@ -1,40 +1,7 @@
-const Docker = require('dockerode');
+const { exec } = require('child_process');
 const fs = require('fs/promises');
 const path = require('path');
 const { v4: uuid } = require('uuid');
-
-const docker = new Docker({ socketPath: '/var/run/docker.sock' });
-
-async function runDocker(image, cmd, binds, workingDir, hostConfig = {}) {
-    const options = {
-        Image: image,
-        Cmd: cmd,
-        WorkingDir: workingDir,
-        HostConfig: hostConfig,
-        Tty: false,
-    };
-
-    const container = await docker.createContainer(options);
-    await container.start();
-
-    const stream = await container.logs({
-        stdout: true,
-        stderr: true,
-        follow: true,
-    });
-
-    let stdout = '';
-    let stderr = '';
-    stream.on('data', chunk => {
-        const log = chunk.toString();
-        stdout += log;
-    });
-
-    const exitData = await container.wait();
-    await container.remove();
-
-    return { exitCode: exitData.StatusCode, stdout, stderr };
-}
 
 const runInContainer = async ({ language, code, input, timeLimit, memoryLimit }) => {
     const jobId = uuid();
@@ -78,70 +45,108 @@ const runInContainer = async ({ language, code, input, timeLimit, memoryLimit })
     const inputPath = path.join(tempDir, 'input.txt');
     await fs.writeFile(inputPath, input);
 
-    const hostConfig = {
-        Binds: [`${tempDir}:/app`],
-        Memory: memoryLimit * 1024 * 1024,
-        Cpus: 0.5,
-        PidsLimit: 64,
-    };
+    const dockerBase = [
+        'docker run --rm',
+        `--memory="${memoryLimit}m"`,
+        `--cpus="0.5"`,
+        '--pids-limit=64',
+        `-v "${tempDir}:/app"`,
+        `--workdir="/app"`,
+        'codesphere-compiler',
+        'sh -c'
+    ];
 
-    try {
-        // compile step
-        if (compileCmd) {
-            const compileRes = await runDocker(
-                'codesphere-compiler:latest',
-                ['sh', '-c', compileCmd],
-                [`${tempDir}:/app`],
-                '/app',
-                hostConfig
-            );
+    // Compile
+    if (compileCmd) {
+        const compileDockerCmd = [...dockerBase];
+        compileDockerCmd.push(`"${compileCmd}"`);
+        const compileFullCmd = compileDockerCmd.join(' ');
 
-            if (compileRes.exitCode !== 0) {
-                await fs.rm(tempDir, { recursive: true, force: true });
-                return {
-                    success: false,
-                    output: `Compiler Error:\n${compileRes.stderr || compileRes.stdout}`,
-                    errorType: 'Compiler Error',
-                };
-            }
+        const compileResult = await new Promise((resolve) => {
+            exec(compileFullCmd, (err, stdout, stderr) => {
+                if (err) {
+                    resolve({
+                        success: false,
+                        stage: 'compile',
+                        output: stderr || err.message,
+                    });
+                } else {
+                    resolve({ success: true });
+                }
+            });
+        });
+
+        if (!compileResult.success) {
+            await fs.rm(tempDir, { recursive: true, force: true });
+            return {
+                success: false,
+                output: compileResult.output,
+                errorType: 'Compiler Error',
+            };
         }
-
-        // run step with limits
-        const runCommand =
-            `ulimit -t ${Math.ceil(timeLimit / 1000)} && ` +
-            `ulimit -v ${memoryLimit * 1024} && ` +
-            `timeout ${Math.ceil(timeLimit / 1000)}s ${runCmd}`;
-
-        const runRes = await runDocker(
-            'codesphere-compiler:latest',
-            ['sh', '-c', runCommand],
-            [`${tempDir}:/app`],
-            '/app',
-            hostConfig
-        );
-
-        if (runRes.exitCode !== 0) {
-            const errorText = (runRes.stderr || runRes.stdout || '').toLowerCase();
-            if (errorText.includes('timeout') || runRes.exitCode === 124) {
-                return { success: false, output: 'Time Limit Exceeded', errorType: 'Time Limit Exceeded' };
-            }
-            if (errorText.includes('killed') || runRes.exitCode === 137) {
-                return { success: false, output: 'Memory Limit Exceeded', errorType: 'Memory Limit Exceeded' };
-            }
-            return { success: false, output: runRes.stderr || runRes.stdout, errorType: 'Runtime Error' };
-        }
-
-        return { success: true, output: runRes.stdout };
-
-    } catch (err) {
-        return {
-            success: false,
-            output: `Docker execution error: ${err.message}`,
-            errorType: 'Internal Error',
-        };
-    } finally {
-        await fs.rm(tempDir, { recursive: true, force: true });
     }
+
+    // Execute
+    const runDockerCmd = [
+        ...dockerBase,
+        `"ulimit -t ${Math.ceil(timeLimit / 1000)} && ulimit -v ${memoryLimit * 1024} && timeout ${Math.ceil(timeLimit / 1000)}s ${runCmd}"`
+    ].join(' ');
+
+    return new Promise((resolve) => {
+        exec(runDockerCmd, async (err, stdout, stderr) => {
+            try {
+                await fs.rm(tempDir, { recursive: true, force: true });
+                console.log(`🧹 Temp directory ${tempDir} deleted successfully.`);
+            } catch (e) {
+                console.error(`❌ Failed to delete temp directory ${tempDir}:`, e.message);
+            }
+
+            if (err) {
+                const errorText = (stderr || err.message || '').toLowerCase();
+                const exitCode = err.code;
+
+                if (
+                    errorText.includes('timeout') ||
+                    errorText.includes('timed out') ||
+                    errorText.includes('command terminated') ||
+                    exitCode === 124
+                ) {
+                    return resolve({
+                        success: false,
+                        output: 'Time Limit Exceeded',
+                        errorType: 'Time Limit Exceeded',
+                    });
+                }
+
+                if (
+                    errorText.includes('killed') ||
+                    errorText.includes('memory') ||
+                    errorText.includes('signal') ||
+                    exitCode === 137
+                ) {
+                    return resolve({
+                        success: false,
+                        output: 'Memory Limit Exceeded',
+                        errorType: 'Memory Limit Exceeded',
+                    });
+                }
+
+
+                return resolve({
+                    success: false,
+                    output: stderr || err.message,
+                    errorType: 'Runtime Error',
+                });
+            }
+
+
+            return resolve({
+                success: true,
+                output: stdout,
+            });
+        });
+    });
+
 };
 
 module.exports = runInContainer;
