@@ -32,6 +32,8 @@ const ProblemsPage = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarType, setSnackbarType] = useState('success');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [problemToDelete, setProblemToDelete] = useState(null);
 
   const showNotification = (message, type = 'success') => {
     setSnackbarMessage(message);
@@ -112,13 +114,13 @@ const ProblemsPage = () => {
     };
   }, []);
 
-  const handleDeleteProblem = async (problemId) => {
-    if (!window.confirm('Are you sure you want to delete this problem? This action cannot be undone.')) {
-      return; // User cancelled
-    }
+  const confirmDelete = async () => {
+    setShowDeleteModal(false);
+
+    if (!problemToDelete) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/problems/${problemId}`, {
+      const response = await fetch(`${API_BASE_URL}/problems/${problemToDelete}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -133,8 +135,15 @@ const ProblemsPage = () => {
       fetchProblems();
     } catch (err) {
       setError(err.message);
-      showNotification('Error deleting problem: ' + err.message);
+      showNotification('Error deleting problem: ' + err.message, 'error');
+    } finally {
+      setProblemToDelete(null);
     }
+  };
+
+  const handleDeleteProblem = (problemId) => {
+    setProblemToDelete(problemId);
+    setShowDeleteModal(true);
   };
 
   const indexOfLastProblem = currentPage * problemsPerPage;
@@ -402,6 +411,42 @@ const ProblemsPage = () => {
           </nav>
         )}
       </section>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4 transform transition-all scale-100 ease-out duration-300">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900">
+                <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.867 2.625 2.607 2.625h14.714c1.74 0 3.473-1.125 2.606-2.625l-7.393-12.822c-.866-1.5-2.607-1.5-3.473 0L4.303 16.751z" />
+                </svg>
+              </div>
+              <h3 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">Delete Problem</h3>
+              <div className="mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Are you sure you want to delete this problem? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse sm:gap-4">
+              <button
+                type="button"
+                className="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-base font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSnackbar && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-full z-50 animate-snackbar-in">
