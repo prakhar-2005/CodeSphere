@@ -256,7 +256,11 @@ const ContestDetailPage = () => {
                                             contest.problems.map((problem) => (
                                                 <tr
                                                     key={problem._id}
-                                                    className={`hover:bg-gray-100 dark:hover:bg-slate-900 transition duration-150 ease-in-out ${solvedProblems.has(problem._id) ? 'bg-green-200 dark:bg-green-900' : ''}`}
+                                                    className={`transition duration-150 ease-in-out ${
+                                                        solvedProblems.has(problem._id) 
+                                                        ? 'bg-green-200 dark:bg-green-900 hover:bg-green-300 dark:hover:bg-green-800' 
+                                                        : 'hover:bg-gray-100 dark:hover:bg-slate-900'
+                                                    }`}
                                                 >
                                                     <td className="py-4 px-6 whitespace-nowrap text-sm font-medium">
                                                         <Link to={`/problems/${problem._id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">

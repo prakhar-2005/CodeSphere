@@ -139,7 +139,7 @@ const EditContestPage = () => {
         return (
             <div className="flex flex-col min-h-screen p-8 pt-24 bg-gradient-to-br from-white to-gray-100 text-gray-900 dark:from-gray-900 dark:to-black dark:text-white items-center justify-center">
                 <p className="text-xl dark:text-white">
-                    {loadingAuth ? 'Checking administrator access...' : 'Loading contest for edit...'}
+                    {loadingAuth ? 'Checking administrator access...' : 'Loading...'}
                 </p>
             </div>
         );
